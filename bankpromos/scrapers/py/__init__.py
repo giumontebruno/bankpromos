@@ -1,0 +1,5 @@
+from bankpromos.scrapers.py.py_sudameris import SudamerisPromotionsScraper
+from bankpromos.scrapers.py.py_ueno import UenoPromotionsScraper
+from bankpromos.scrapers.py.py_itau import ItauPromotionsScraper
+from bankpromos.scrapers.py.py_continental import ContinentalPromotionsScraper
+from bankpromos.scrapers.py.py_bnf import BnfPromotionsScraper
