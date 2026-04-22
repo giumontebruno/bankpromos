@@ -88,6 +88,8 @@ class DataStatusResponse(BaseModel):
     latest_promotion_inserted_at: Optional[str] = None
     latest_fuel_inserted_at: Optional[str] = None
     disable_live_scraping: bool
+    curated_count: int = 0
+    scraped_count: int = 0
 
 
 class BankResponse(BaseModel):
@@ -170,7 +172,9 @@ async def startup_event():
     try:
         promos = load_promotions(config.db_path)
         fuel = load_fuel_prices(config.db_path)
-        logger.info(f"[STARTUP] PROMOS: {len(promos)}")
+        scraped = [p for p in promos if p.result_quality_label != "CURATED"]
+        curated = [p for p in promos if p.result_quality_label == "CURATED"]
+        logger.info(f"[STARTUP] PROMOS: {len(promos)} (scraped={len(scraped)}, curated={len(curated)})")
         logger.info(f"[STARTUP] FUEL: {len(fuel)}")
     except Exception as e:
         logger.warning(f"[STARTUP] Could not load data: {e}")
@@ -216,6 +220,9 @@ async def data_status():
         fuel = load_fuel_prices(config.db_path)
         promo_dt = get_last_promotion_update(config.db_path)
         fuel_dt = get_last_fuel_update(config.db_path)
+        
+        scraped = [p for p in promos if p.result_quality_label != "CURATED"]
+        curated = [p for p in promos if p.result_quality_label == "CURATED"]
 
         return DataStatusResponse(
             db_path=db_info["db_path"],
@@ -226,6 +233,8 @@ async def data_status():
             latest_promotion_inserted_at=promo_dt.isoformat() if promo_dt else None,
             latest_fuel_inserted_at=fuel_dt.isoformat() if fuel_dt else None,
             disable_live_scraping=config.disable_live_scraping,
+            curated_count=len(curated),
+            scraped_count=len(scraped),
         )
     except Exception as e:
         logger.error(f"Data status error: {e}")

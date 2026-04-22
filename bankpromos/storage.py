@@ -1,4 +1,5 @@
 import json
+import logging
 import sqlite3
 from datetime import datetime
 from decimal import Decimal
@@ -6,6 +7,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from bankpromos.core.models import FuelPriceModel, PromotionModel
+
+logger = logging.getLogger(__name__)
 
 
 def _get_connection(db_path: str = "bankpromos.db") -> sqlite3.Connection:
@@ -221,14 +224,17 @@ def _load_scraped_promotions(db_path: str = "bankpromos.db") -> List[PromotionMo
 
 
 def _load_curated_promotions() -> List[PromotionModel]:
-    curated_path = Path("data/curated_promotions.json")
+    base_dir = Path(__file__).parent.parent / "data"
+    curated_path = base_dir / "curated_promotions.json"
     if not curated_path.exists():
+        logger.warning(f"[CURATED] File not found: {curated_path}")
         return []
     
     try:
         with open(curated_path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception:
+        logger.warning(f"[CURATED] Failed to load curated data")
         return []
     
     promos = []
