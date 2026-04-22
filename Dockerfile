@@ -21,12 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir -e .
+COPY bankpromos bankpromos
+RUN pip install --no-cache-dir .
 
 RUN pip install --no-cache-dir playwright && \
     playwright install --with-deps chromium
 
-ENV PORT=8000
 ENV BANKPROMOS_DB_PATH=/app/data/bankpromos.db
 ENV BANKPROMOS_CACHE_HOURS=12
 
@@ -34,4 +34,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 8000
 
-CMD ["uvicorn", "bankpromos.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD sh -c "uvicorn bankpromos.api:app --host 0.0.0.0 --port ${PORT:-8000}"

@@ -1,3 +1,4 @@
+import logging
 import re
 import tempfile
 from datetime import datetime
@@ -15,6 +16,8 @@ except ImportError:
 from bankpromos.core.models import PromotionModel
 from bankpromos.scrapers import register_scraper
 from bankpromos.scrapers.base_public import BasePublicScraper
+
+logger = logging.getLogger(__name__)
 
 
 @register_scraper("py_ueno")
@@ -60,6 +63,7 @@ class UenoPromotionsScraper(BasePublicScraper):
         self._save_debug_screenshot("ueno_main")
 
         promotions: List[PromotionModel] = []
+        before_dedupe = 0
 
         pdf_links = self._extract_pdf_links()
         seen_urls: Set[str] = set()
@@ -71,7 +75,19 @@ class UenoPromotionsScraper(BasePublicScraper):
         html_promos = self._extract_from_page()
         promotions.extend(html_promos)
 
-        return self._dedupe_promotions(promotions)
+        before_dedupe = len(promotions)
+        deduped = self._dedupe_promotions(promotions)
+
+        self._finalize_diagnostics(
+            url=self._diagnostics.url,
+            title=page.title() or "",
+            before_dedupe=before_dedupe,
+            after_dedupe=len(deduped),
+            body_len=len(page.locator("body").inner_text() or ""),
+        )
+        logger.info(f"[{self._get_bank_id()}] url={self._diagnostics.url} title={self._diagnostics.title[:30]} cards={self._card_match_count} pdfs={self._pdf_link_count} fallback={self._fallback_ran} before={before_dedupe} after={len(deduped)}")
+
+        return deduped
 
     def _extract_pdf_links(self) -> List[str]:
         page = self._ensure_page()
@@ -86,6 +102,7 @@ class UenoPromotionsScraper(BasePublicScraper):
                         continue
                     full_url = urljoin(self.PAGE_URL, href) if not href.startswith("http") else href
                     links.append(full_url)
+                    self._record_pdf_link()
                 except Exception:
                     continue
 
@@ -97,6 +114,7 @@ class UenoPromotionsScraper(BasePublicScraper):
 
         selector = ", ".join(self.CARD_SELECTORS)
         cards = page.locator(selector).all()
+        self._card_match_count = len(cards)
 
         for card in cards:
             try:
@@ -112,6 +130,7 @@ class UenoPromotionsScraper(BasePublicScraper):
                 continue
 
         if not promotions:
+            self._record_fallback()
             body_text = page.locator("body").inner_text()
             lines = [ln.strip() for ln in body_text.splitlines() if ln.strip()]
             for line in lines:

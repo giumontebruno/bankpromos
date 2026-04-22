@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from bankpromos.core.models import PromotionModel
 from bankpromos.fuel_prices import normalize_fuel_type as _norm_fuel_type, normalize_emblem as _norm_emblem

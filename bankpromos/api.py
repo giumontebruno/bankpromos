@@ -1,7 +1,11 @@
+import asyncio
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +16,7 @@ from bankpromos.cache import get_cache_status
 from bankpromos.config import config
 from bankpromos.data_service import (
     collect_all_data,
+    collect_debug_data,
     get_fuel_data,
     get_promotions_data,
 )
@@ -22,6 +27,20 @@ from bankpromos.storage import init_db
 
 logging.basicConfig(level=logging.INFO if not config.debug else logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+port = int(os.getenv("PORT", "8000"))
+
+_thread_pool = ThreadPoolExecutor(max_workers=4)
+
+T = TypeVar("T")
+
+
+async def run_blocking(func: Callable[..., T], *args, **kwargs) -> T:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        _thread_pool,
+        partial(func, *args, **kwargs)
+    )
 
 
 app = FastAPI(
@@ -124,7 +143,7 @@ def _serialize_promo(promo) -> Dict[str, Any]:
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Starting Bank Promos PY API...")
+    logger.info(f"Starting Bank Promos PY API on port {port}...")
     try:
         config.ensure_db_dir()
         init_db(config.db_path)
@@ -132,6 +151,11 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
+
+
+@app.get("/", response_model=HealthResponse)
+async def root():
+    return HealthResponse(status="ok")
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -159,7 +183,7 @@ async def get_cache():
 @app.post("/collect", response_model=CollectResponse)
 async def collect_data(force: bool = False):
     try:
-        result = collect_all_data(force_refresh=force, db_path=config.db_path)
+        result = await run_blocking(collect_all_data, force_refresh=force, db_path=config.db_path)
         return CollectResponse(
             promotions_count=result["promotions_count"],
             fuel_prices_count=result["fuel_prices_count"],
@@ -169,6 +193,16 @@ async def collect_data(force: bool = False):
     except Exception as e:
         logger.error(f"Collect error: {e}")
         raise HTTPException(status_code=500, detail=f"Error collecting data: {str(e)}")
+
+
+@app.post("/collect-debug")
+async def collect_debug(force: bool = False):
+    try:
+        result = await run_blocking(collect_debug_data, force_refresh=force, db_path=config.db_path)
+        return result
+    except Exception as e:
+        logger.error(f"Collect debug error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error collecting debug data: {str(e)}")
 
 
 @app.post("/collect-fuel")
@@ -203,7 +237,7 @@ async def query(
     limit: int = Query(default=10, le=50),
 ):
     try:
-        promos = get_promotions_data(force_refresh=False, db_path=config.db_path)
+        promos = await run_blocking(get_promotions_data, force_refresh=False, db_path=config.db_path)
 
         results = query_promotions(promos, q)
 
@@ -231,7 +265,7 @@ async def fuel_query(
         from bankpromos.fuel_prices import normalize_fuel_type, normalize_emblem
         from bankpromos.fuel_query import find_best_fuel_promotions
 
-        promos = get_promotions_data(force_refresh=False, db_path=config.db_path)
+        promos = await run_blocking(get_promotions_data, force_refresh=False, db_path=config.db_path)
         fuel_prices = get_fuel_data(force_refresh=False, db_path=config.db_path)
 
         fuel_type = normalize_fuel_type(q) or "nafta_95"

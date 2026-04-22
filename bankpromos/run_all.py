@@ -1,10 +1,11 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 from bankpromos.core.deduper import dedupe_promotions
 from bankpromos.core.models import PromotionModel
 from bankpromos.core.normalizer import normalize_promotion
 from bankpromos.core.scoring import score_promotion
 from bankpromos.scrapers import get_scraper
+from bankpromos.scrapers.base_public import ScraperDiagnostics
 
 
 SUPPORTED_BANKS = ["py_sudameris", "py_ueno", "py_itau", "py_continental", "py_bnf"]
@@ -20,6 +21,19 @@ def run_scraper(bank_id: str, debug_mode: bool = False) -> Tuple[List[PromotionM
         return promos, None
     except Exception as e:
         return [], str(e)
+
+
+def run_scraper_with_diagnostics(bank_id: str, debug_mode: bool = True) -> Tuple[List[PromotionModel], Optional[ScraperDiagnostics], Optional[str]]:
+    if bank_id not in SUPPORTED_BANKS:
+        return [], None, f"Unsupported bank: {bank_id}"
+
+    try:
+        scraper = get_scraper(bank_id, debug_mode=debug_mode)
+        promos = scraper.scrape()
+        diag = scraper.get_diagnostics()
+        return promos, diag, None
+    except Exception as e:
+        return [], None, str(e)
 
 
 def run_all_scrapers(

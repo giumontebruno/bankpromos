@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import datetime
 from decimal import Decimal
@@ -6,6 +7,8 @@ from typing import List, Optional, Set
 from bankpromos.core.models import PromotionModel
 from bankpromos.scrapers import register_scraper
 from bankpromos.scrapers.base_public import BasePublicScraper
+
+logger = logging.getLogger(__name__)
 
 
 @register_scraper("py_continental")
@@ -39,7 +42,20 @@ class ContinentalPromotionsScraper(BasePublicScraper):
 
         self._save_debug_screenshot("continental_main")
 
-        return self._extract_from_page()
+        promotions = self._extract_from_page()
+        before_dedupe = self._extracted_count
+        deduped = self._dedupe_promotions(promotions)
+
+        self._finalize_diagnostics(
+            url=self._diagnostics.url,
+            title=page.title() or "",
+            before_dedupe=before_dedupe,
+            after_dedupe=len(deduped),
+            body_len=len(page.locator("body").inner_text() or ""),
+        )
+        logger.info(f"[{self._get_bank_id()}] url={self._diagnostics.url} title={self._diagnostics.title[:30]} cards={self._card_match_count} pdfs={self._pdf_link_count} fallback={self._fallback_ran} before={before_dedupe} after={len(deduped)}")
+
+        return deduped
 
     def _extract_from_page(self) -> List[PromotionModel]:
         page = self._ensure_page()
@@ -47,6 +63,7 @@ class ContinentalPromotionsScraper(BasePublicScraper):
 
         selector = ", ".join(self.CARD_SELECTORS)
         cards = page.locator(selector).all()
+        self._card_match_count = len(cards)
 
         for card in cards:
             try:
@@ -62,10 +79,12 @@ class ContinentalPromotionsScraper(BasePublicScraper):
                 continue
 
         if not promotions:
+            self._record_fallback()
             body_text = page.locator("body").inner_text()
             promotions = self._extract_from_text(body_text)
 
-        return self._dedupe_promotions(promotions)
+        self._record_extracted(len(promotions))
+        return promotions
 
     def _extract_title_from_card(self, card) -> Optional[str]:
         try:
