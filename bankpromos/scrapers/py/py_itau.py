@@ -1,8 +1,12 @@
+import json
 import logging
 import re
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set
+from urllib.parse import urljoin
+
+import requests
 
 from bankpromos.core.models import PromotionModel
 from bankpromos.core.normalizer import _is_valid_merchant_name, _contains_fuel_signal
@@ -35,6 +39,15 @@ class ItauPromotionsScraper(BasePublicScraper):
         '[class*="beneficio"]',
         '[class*="offer"]',
         '[class*="discount"]',
+        "article",
+        "section",
+    ]
+
+    PDF_SELECTORS = [
+        'a[href$=".pdf"]',
+        'a[href*="pdf"]',
+        'a[href*="beneficio"]',
+        'a[href*="promo"]',
     ]
 
     SKIP_PHRASES: Set[str] = {
@@ -99,14 +112,51 @@ class ItauPromotionsScraper(BasePublicScraper):
 
     def _scrape_promotions(self) -> List[PromotionModel]:
         page = self._ensure_page()
-        self._navigate(self.BENEFITS_URL)
-        page.wait_for_load_state("domcontentloaded")
-        page.wait_for_timeout(2000)
+
+        self._navigate_staged(self.BENEFITS_URL)
 
         self._save_debug_screenshot("itau_main")
 
-        promotions = self._extract_from_page()
-        before_dedupe = self._extracted_count
+        promotions: List[PromotionModel] = []
+        dom_promos = 0
+        pdf_promos = 0
+
+        api_promos = self._try_api_extraction()
+        if api_promos:
+            promotions.extend(api_promos)
+            self._diagnostics.promos_from_api = len(api_promos)
+            self._diagnostics.source_used = "api"
+
+        pdf_links = self._extract_pdf_links()
+        seen_urls: Set[str] = set()
+        for pdf_url in pdf_links:
+            if pdf_url and pdf_url not in seen_urls:
+                seen_urls.add(pdf_url)
+                pdf_results = self._parse_pdf_promotions(pdf_url)
+                if pdf_results:
+                    promotions.extend(pdf_results)
+                    pdf_promos += len(pdf_results)
+
+        if pdf_promos > 0:
+            self._diagnostics.promos_from_pdf = pdf_promos
+            if not self._diagnostics.source_used or self._diagnostics.source_used == "unknown":
+                self._diagnostics.source_used = "pdf"
+
+        html_promos = self._extract_from_page()
+        if html_promos:
+            promotions.extend(html_promos)
+            dom_promos = len(html_promos)
+            self._diagnostics.promos_from_dom = dom_promos
+            if not self._diagnostics.source_used or self._diagnostics.source_used == "unknown":
+                self._diagnostics.source_used = "dom"
+
+        if not promotions:
+            self._record_fallback()
+            self._diagnostics.source_used = "fallback"
+            fallback_promos = self._extract_from_fallback()
+            promotions.extend(fallback_promos)
+
+        before_dedupe = self._extracted_count if self._extracted_count > 0 else len(promotions)
         deduped = self._dedupe_promotions(promotions)
 
         self._finalize_diagnostics(
@@ -114,19 +164,142 @@ class ItauPromotionsScraper(BasePublicScraper):
             title=page.title() or "",
             before_dedupe=before_dedupe,
             after_dedupe=len(deduped),
-            body_len=len(page.locator("body").inner_text() or ""),
+            body_len=len(page.locator("body").inner_text() or "") if self._page_is_alive() else 0,
         )
-        logger.info(f"[{self._get_bank_id()}] url={self._diagnostics.url} title={self._diagnostics.title[:30]} cards={self._card_match_count} pdfs={self._pdf_link_count} fallback={self._fallback_ran} before={before_dedupe} after={len(deduped)}")
+        logger.info(f"[{self._get_bank_id()}] source={self._diagnostics.source_used} dom={dom_promos} pdf={pdf_promos} before={before_dedupe} after={len(deduped)}")
 
         return deduped
+
+    def _try_api_extraction(self) -> List[PromotionModel]:
+        json_urls = [url for url in self._relevant_urls if "json" in url.lower() or "api" in url.lower()]
+        for url in json_urls[:3]:
+            promos = self._try_json_url(url)
+            if promos:
+                logger.info(f"[{self._get_bank_id()}] Found API data at: {url}")
+                return promos
+        return []
+
+    def _try_json_url(self, url: str) -> List[PromotionModel]:
+        try:
+            response = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+            if response.status_code == 200:
+                content_type = response.headers.get("content-type", "")
+                if "json" in content_type or url.endswith(".json"):
+                    data = response.json()
+                    if isinstance(data, list):
+                        return self._parse_json_promotions(data)
+                    elif isinstance(data, dict):
+                        for key in ["beneficios", "promociones", "promos", "data"]:
+                            if key in data:
+                                return self._parse_json_promotions(data[key])
+        except Exception:
+            pass
+        return []
+
+    def _parse_json_promotions(self, data: List[Dict]) -> List[PromotionModel]:
+        promos = []
+        for item in data:
+            if isinstance(item, dict):
+                title = item.get("title") or item.get("nombre") or item.get("merchant", "")
+                merchant = item.get("merchant") or item.get("establecimiento", "")
+                discount = item.get("discount") or item.get("descuento") or item.get("reintegro", 0)
+                category = item.get("category") or item.get("categoria", "")
+
+                if not merchant and title and self._is_generic_title(str(title)):
+                    continue
+
+                promo = PromotionModel(
+                    bank_id=self._get_bank_id(),
+                    title=str(title)[:100] if title else "Promoción",
+                    merchant_name=merchant if _is_valid_merchant_name(str(merchant)) else None,
+                    category=category if category else "General",
+                    benefit_type="reintegro" if isinstance(discount, (int, float)) and discount > 0 else None,
+                    discount_percent=Decimal(str(discount)) if discount else None,
+                    source_url=self.BENEFITS_URL,
+                    raw_text=json.dumps(item),
+                    raw_data={"source": "api", "original": item},
+                )
+                promos.append(promo)
+        return promos
+
+    def _extract_pdf_links(self) -> List[str]:
+        page = self._ensure_page()
+        links: List[str] = []
+
+        for selector in self.PDF_SELECTORS:
+            els = page.locator(selector).all()
+            for el in els:
+                try:
+                    href = el.get_attribute("href")
+                    if not href:
+                        continue
+                    full_url = urljoin("https://www.itau.com.py", href) if not href.startswith("http") else href
+                    if full_url not in links:
+                        links.append(full_url)
+                        self._record_pdf_link()
+                except Exception:
+                    continue
+
+        for url in self._relevant_urls:
+            if any(ext in url.lower() for ext in [".pdf", "pdf"]):
+                if url not in links:
+                    links.append(url)
+                    self._record_pdf_link()
+
+        return list(set(links))
+
+    def _parse_pdf_promotions(self, pdf_url: str) -> List[PromotionModel]:
+        try:
+            response = requests.get(pdf_url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+            response.raise_for_status()
+            if len(response.content) < 1000:
+                return []
+        except Exception:
+            return []
+
+        try:
+            import pdfplumber
+        except ImportError:
+            return []
+
+        pdf_path = ""
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+                f.write(response.content)
+                pdf_path = f.name
+
+            promotions: List[PromotionModel] = []
+
+            with pdfplumber.open(pdf_path) as pdf:
+                for pdf_page in pdf.pages:
+                    text = pdf_page.extract_text()
+                    if not text:
+                        continue
+                    promo = self._build_promo_from_text(text)
+                    if promo:
+                        promotions.append(promo)
+
+            return promotions
+        except Exception:
+            return []
+        finally:
+            if pdf_path:
+                try:
+                    import os
+                    os.unlink(pdf_path)
+                except Exception:
+                    pass
 
     def _extract_from_page(self) -> List[PromotionModel]:
         page = self._ensure_page()
         promotions: List[PromotionModel] = []
 
-        selector = ", ".join(self.CARD_SELECTORS)
-        cards = page.locator(selector).all()
-        self._card_match_count = len(cards)
+        for selector in self.CARD_SELECTORS:
+            cards = page.locator(selector).all()
+            if len(cards) > 0:
+                self._card_match_count = len(cards)
+                break
 
         for card in cards:
             try:
@@ -140,52 +313,24 @@ class ItauPromotionsScraper(BasePublicScraper):
                 body = card.inner_text()
                 promo = self._build_promo(title, body)
                 if promo and self._has_benefit_signal(body):
-                    if promo.merchant_name or _contains_fuel_signal(body) or self._has_real_merchant(body):
+                    if promo.merchant_name or _contains_fuel_signal(body) or self._has_real_merchant(body) or float(promo.discount_percent or 0) >= 10:
                         promotions.append(promo)
             except Exception:
                 continue
 
-        if not promotions:
-            self._record_fallback()
-            body_text = page.locator("body").inner_text()
-            promotions = self._extract_from_text(body_text)
-
         self._record_extracted(len(promotions))
         return promotions
 
-    def _extract_title_from_card(self, card) -> Optional[str]:
-        try:
-            title = card.locator("h2, h3, h4, h5, [class*='title'], [class*='name']").first.inner_text().strip()
-            if title:
-                return title
-            first_line = card.inner_text().split("\n")[0].strip()
-            if first_line and len(first_line) > 2:
-                return first_line
-        except Exception:
-            pass
-        return None
-
-    def _has_benefit_signal(self, text: str) -> bool:
-        text_lower = text.lower()
-        signals = [
-            r"\d{1,2}\s*%",
-            r"\d{1,2}\s*cuotas?",
-            r"reintegro",
-            r"descuento",
-            r"vigencia",
-            r"válido",
-            r"valido",
-            r"hasta\s+\d+",
-        ]
-        for signal in signals:
-            if re.search(signal, text_lower):
-                return True
-        return False
-
-    def _extract_from_text(self, text: str) -> List[PromotionModel]:
-        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    def _extract_from_fallback(self) -> List[PromotionModel]:
+        page = self._ensure_page()
         promotions: List[PromotionModel] = []
 
+        try:
+            body_text = page.locator("body").inner_text()
+        except Exception:
+            return promotions
+
+        lines = [ln.strip() for ln in body_text.splitlines() if ln.strip()]
         current_title: Optional[str] = None
         buffer: List[str] = []
 
@@ -212,7 +357,41 @@ class ItauPromotionsScraper(BasePublicScraper):
                 if promo and (promo.merchant_name or _contains_fuel_signal(detail) or self._has_real_merchant(detail)):
                     promotions.append(promo)
 
+        self._record_extracted(len(promotions))
         return promotions
+
+    def _extract_title_from_card(self, card) -> Optional[str]:
+        try:
+            for tag in ["h2", "h3", "h4", "h5"]:
+                title = card.locator(tag).first.inner_text().strip()
+                if title:
+                    return title
+            title = card.locator("[class*='title']").first.inner_text().strip()
+            if title:
+                return title
+            first_line = card.inner_text().split("\n")[0].strip()
+            if first_line and len(first_line) > 2:
+                return first_line
+        except Exception:
+            pass
+        return None
+
+    def _has_benefit_signal(self, text: str) -> bool:
+        text_lower = text.lower()
+        signals = [
+            r"\d{1,2}\s*%",
+            r"\d{1,2}\s*cuotas?",
+            r"reintegro",
+            r"descuento",
+            r"vigencia",
+            r"válido",
+            r"valido",
+            r"hasta\s+\d+",
+        ]
+        for signal in signals:
+            if re.search(signal, text_lower):
+                return True
+        return False
 
     def _dedupe_promotions(self, promos: List[PromotionModel]) -> List[PromotionModel]:
         if not promos:
@@ -232,8 +411,43 @@ class ItauPromotionsScraper(BasePublicScraper):
     def _promo_key(self, p: PromotionModel) -> str:
         merchant = (p.merchant_name or p.title or "").lower().strip()
         discount = str(p.discount_percent or "")
-        cuotas = str(p.installment_count or "")
-        return f"{p.bank_id}:{merchant}:{discount}:{cuotas}"
+        return f"{p.bank_id}:{merchant}:{discount}"
+
+    def _build_promo_from_text(self, text: str) -> Optional[PromotionModel]:
+        lines = text.split("\n")
+        if not lines:
+            return None
+
+        title = lines[0][:100]
+        if self._is_generic_title(title):
+            title = "Promoción Itaú"
+
+        merchant = self._extract_merchant_from_text(text)
+        if not merchant and not _contains_fuel_signal(text) and not self._has_real_merchant(text):
+            return None
+
+        pct_match = re.search(r"(\d{1,2})\s*%", text, re.I)
+        discount_percent = Decimal(pct_match.group(1)) if pct_match else None
+
+        benefit_type = None
+        if "reintegro" in text.lower():
+            benefit_type = "reintegro"
+        elif "descuento" in text.lower():
+            benefit_type = "descuento"
+
+        category = self._infer_category(title, text)
+
+        return PromotionModel(
+            bank_id=self._get_bank_id(),
+            title=title,
+            merchant_name=merchant,
+            category=category,
+            benefit_type=benefit_type,
+            discount_percent=discount_percent,
+            source_url=self.BENEFITS_URL,
+            raw_text=text[:500],
+            raw_data={"source": "pdf"},
+        )
 
     def _build_promo(self, title: str, detail: str) -> Optional[PromotionModel]:
         full_text = f"{title}. {detail}"
@@ -244,50 +458,18 @@ class ItauPromotionsScraper(BasePublicScraper):
 
         merchant_name = self._extract_merchant_from_text(full_text)
 
-        discount_percent: Optional[Decimal] = None
-        installment_count: Optional[int] = None
-        valid_days: List[str] = []
-        valid_from: Optional[datetime.date] = None
-        valid_to: Optional[datetime.date] = None
-        benefit_type: Optional[str] = None
+        pct_match = re.search(r"(\d{1,2})\s*%", full_text, re.I)
+        discount_percent: Optional[Decimal] = Decimal(pct_match.group(1)) if pct_match else None
+
+        benefit_type = None
+        if "reintegro" in full_text.lower():
+            benefit_type = "reintegro"
+        elif "descuento" in full_text.lower():
+            benefit_type = "descuento"
+
         category = self._infer_category(title, detail)
 
-        pct_match = re.search(r"(\d{1,2})\s*%", full_text, re.I)
-        if pct_match:
-            discount_percent = Decimal(pct_match.group(1))
-            if "reintegro" in full_text.lower():
-                benefit_type = "reintegro"
-            elif "descuento" in full_text.lower():
-                benefit_type = "descuento"
-
-        cuotas_match = re.search(r"(\d{1,2})\s*cuotas?", full_text, re.I)
-        if cuotas_match:
-            installment_count = int(cuotas_match.group(1))
-            if not benefit_type:
-                benefit_type = "cuotas"
-
-        days_map = {
-            "lunes": "lunes",
-            "martes": "martes",
-            "miercoles": "miércoles",
-            "miércoles": "miércoles",
-            "jueves": "jueves",
-            "viernes": "viernes",
-            "sabado": "sábado",
-            "sábados": "sábado",
-            "sábado": "sábado",
-            "domingo": "domingo",
-            "domingos": "domingo",
-        }
-        for day_key, day_norm in days_map.items():
-            if day_key in full_text.lower():
-                valid_days.append(day_norm)
-
-        dates = self._parse_dates(full_text)
-        if dates:
-            valid_from, valid_to = dates
-
-        if not any([discount_percent, installment_count, valid_days, valid_from, valid_to, category]):
+        if not any([discount_percent, merchant_name]):
             return None
 
         return PromotionModel(
@@ -297,10 +479,6 @@ class ItauPromotionsScraper(BasePublicScraper):
             category=category,
             benefit_type=benefit_type,
             discount_percent=discount_percent,
-            installment_count=installment_count,
-            valid_days=sorted(list(set(valid_days))),
-            valid_from=valid_from,
-            valid_to=valid_to,
             source_url=self.BENEFITS_URL,
             raw_text=full_text,
             raw_data={"source": "html"},
@@ -323,30 +501,6 @@ class ItauPromotionsScraper(BasePublicScraper):
                     return line_clean
 
         return None
-
-    def _parse_dates(self, text: str):
-        valid_from: Optional[datetime.date] = None
-        valid_to: Optional[datetime.date] = None
-
-        date_match = re.search(
-            r"(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})\s*(?:al|-)\s*(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})",
-            text,
-            re.I,
-        )
-        if date_match:
-            try:
-                d1, m1, y1 = int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3))
-                d2, m2, y2 = int(date_match.group(4)), int(date_match.group(5)), int(date_match.group(6))
-                y1 = 2000 + y1 if y1 < 100 else y1
-                y2 = 2000 + y2 if y2 < 100 else y2
-                if y1 <= 2100:
-                    valid_from = datetime(y1, m1, d1).date()
-                if y2 <= 2100:
-                    valid_to = datetime(y2, m2, d2).date()
-            except Exception:
-                pass
-
-        return valid_from, valid_to
 
     def _infer_category(self, title: str, detail: str) -> Optional[str]:
         txt = f"{title} {detail}".lower()
