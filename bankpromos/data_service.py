@@ -29,12 +29,21 @@ def _filter_weak_promotions(promos: List[PromotionModel]) -> List[PromotionModel
     return [p for p in promos if not _is_weak_promotion(p)]
 
 
-def _process_promotions(promos: List[PromotionModel]) -> List[PromotionModel]:
+def _process_promotions(promos: List[PromotionModel], bank_id: str = "unknown") -> List[PromotionModel]:
     if not promos:
         return []
 
     normalized = [normalize_promotion(p) for p in promos]
     filtered = _filter_weak_promotions(normalized)
+
+    total = len(promos)
+    after_norm = len(normalized)
+    after_filter = len(filtered)
+
+    dropped = total - after_filter
+    if dropped > 0:
+        logger.info(f"[{bank_id}] Filtered {dropped} weak promotions ({total} scraped → {after_filter} saved)")
+
     deduped = dedupe_promotions(filtered)
     scored = [score_promotion(p) for p in deduped]
 
@@ -63,13 +72,14 @@ def get_promotions_data(
             return cached
 
     all_promos: List[PromotionModel] = []
-    _, errors = run_all_scrapers()
+    bank_ids = ["py_sudameris", "py_ueno", "py_itau", "py_continental", "py_bnf"]
 
-    for bank_id in ["py_sudameris", "py_ueno", "py_itau", "py_continental", "py_bnf"]:
+    for bank_id in bank_ids:
         try:
             promos, error = run_scraper(bank_id)
             if not error and promos:
-                all_promos.extend(promos)
+                processed_bank = _process_promotions(promos, bank_id)
+                all_promos.extend(processed_bank)
         except Exception:
             continue
 
@@ -77,11 +87,9 @@ def get_promotions_data(
         cached = load_promotions(db_path)
         return cached
 
-    processed = _process_promotions(all_promos)
+    save_promotions(all_promos, db_path)
 
-    save_promotions(processed, db_path)
-
-    return processed
+    return all_promos
 
 
 def get_fuel_data(

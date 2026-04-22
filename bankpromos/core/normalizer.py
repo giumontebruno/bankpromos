@@ -272,30 +272,21 @@ def _infer_category_from_text(title: str, detail: str = "") -> Optional[str]:
     return None
 
 
-def _is_weak_promotion(promo: PromotionModel) -> bool:
-    title = (promo.title or "").strip().lower()
+def _is_actionable_promotion(promo: PromotionModel) -> bool:
     merchant = (promo.merchant_name or "").strip().lower()
-    category = (promo.category or "").lower()
     raw = (promo.raw_text or "").lower()
 
-    title_is_generic = any(
-        title == word or title.startswith(f"{word} ") or title.endswith(f" {word}")
-        for word in INVALID_MERCHANT_PATTERNS["generic_words"]
-    )
-    if title_is_generic and not merchant:
+    if merchant and _is_valid_merchant_name(merchant):
         return True
 
-    if re.match(r"^\d+\s*%?$", title) and not merchant:
-        return True
-
-    if not merchant and category == "general":
-        if _contains_fuel_signal(raw):
-            return False
-        if promo.discount_percent or promo.installment_count:
-            return False
+    if _contains_fuel_signal(raw):
         return True
 
     return False
+
+
+def _is_weak_promotion(promo: PromotionModel) -> bool:
+    return not _is_actionable_promotion(promo)
 
 
 def normalize_promotion(promo: PromotionModel) -> Optional[PromotionModel]:
