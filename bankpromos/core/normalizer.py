@@ -75,10 +75,11 @@ INVALID_MERCHANT_PATTERNS = {
         "especial", "limitado", "stock", "cat", "catálogo", "catalogo",
         "todo", "todos", "todas", "dias", "días", "lunes", "martes",
         "miercoles", "miércoles", "jueves", "viernes", "sabado", "sábado",
-        "domingo", "domingos", "general",
+        "domingo", "domingos", "general", "beneficios para vos",
+        "beneficios para ti", "para vos", "para ti",
     },
     "percentage_fragments": {
-        "%", "%", "%", "%", "%", "%", "%", "%", "%", "%",
+        "%", "%", "%", "%", "%", "%", "%", "%", "%", "%", "%",
     },
 }
 
@@ -287,12 +288,6 @@ def _is_actionable_promotion(promo: PromotionModel) -> bool:
         return True
 
     if promo.installment_count and promo.installment_count >= 3:
-        return True
-
-    if title and not any(
-        title == word or title.startswith(f"{word} ") or title.endswith(f" {word}")
-        for word in INVALID_MERCHANT_PATTERNS["generic_words"]
-    ):
         return True
 
     return False

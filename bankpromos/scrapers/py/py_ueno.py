@@ -163,9 +163,18 @@ class UenoPromotionsScraper(BasePublicScraper):
             self._diagnostics.source_used = "fallback"
             fallback_promos = self._extract_from_fallback()
             promotions.extend(fallback_promos)
+            self._diagnostics.promos_from_dom = len(fallback_promos)
 
         before_dedupe = len(promotions)
         deduped = self._dedupe_promotions(promotions)
+        
+        if not deduped:
+            self._diagnostics.quality_label = "failed"
+        elif any(p.merchant_name for p in deduped):
+            self._diagnostics.quality_label = "actionable"
+        else:
+            self._diagnostics.quality_label = "generic_only"
+            deduped = []
 
         self._finalize_diagnostics(
             url=self._diagnostics.url,
@@ -273,31 +282,17 @@ class UenoPromotionsScraper(BasePublicScraper):
                 body = card.inner_text()
                 promo = self._build_promo(title, body)
                 if promo and self._has_benefit_signal(body):
-                    if promo.merchant_name or self._has_fuel_signal(body) or float(promo.discount_percent or 0) >= 10:
+                    if promo.merchant_name or self._has_fuel_signal(body):
                         promotions.append(promo)
+                    else:
+                        self._diagnostics.rejected_generic_count += 1
             except Exception:
                 continue
 
         return promotions
 
     def _extract_from_fallback(self) -> List[PromotionModel]:
-        page = self._ensure_page()
-        promotions: List[PromotionModel] = []
-
-        try:
-            body_text = page.locator("body").inner_text()
-        except Exception:
-            return promotions
-
-        lines = [ln.strip() for ln in body_text.splitlines() if ln.strip()]
-        for line in lines:
-            if len(line) > 10 and len(line) < 80:
-                if self._has_benefit_signal(line):
-                    promo = self._build_promo(line, "")
-                    if promo and (promo.merchant_name or self._has_fuel_signal(line) or float(promo.discount_percent or 0) >= 15):
-                        promotions.append(promo)
-
-        return promotions
+        return []
 
     def _extract_title_from_card(self, card) -> Optional[str]:
         try:

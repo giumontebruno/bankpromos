@@ -40,6 +40,8 @@ class ScraperDiagnostics:
     promos_from_dom: int = 0
     promos_from_pdf: int = 0
     promos_from_api: int = 0
+    rejected_generic_count: int = 0
+    quality_label: str = "unknown"
 
     def to_dict(self):
         result = asdict(self)

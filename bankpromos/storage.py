@@ -195,6 +195,17 @@ def save_promotions(promos: List[PromotionModel], db_path: str = "bankpromos.db"
 
 
 def load_promotions(db_path: str = "bankpromos.db") -> List[PromotionModel]:
+    scraped = _load_scraped_promotions(db_path)
+    curated = _load_curated_promotions()
+    
+    merged = scraped + curated
+    merged = _dedupe_promotions(merged)
+    merged = _score_promotions(merged)
+    
+    return merged
+
+
+def _load_scraped_promotions(db_path: str = "bankpromos.db") -> List[PromotionModel]:
     if not Path(db_path).exists():
         return []
 
@@ -207,6 +218,89 @@ def load_promotions(db_path: str = "bankpromos.db") -> List[PromotionModel]:
         return [_row_to_promo(row) for row in rows]
     finally:
         conn.close()
+
+
+def _load_curated_promotions() -> List[PromotionModel]:
+    curated_path = Path("data/curated_promotions.json")
+    if not curated_path.exists():
+        return []
+    
+    try:
+        with open(curated_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
+    
+    promos = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        try:
+            promo = PromotionModel(
+                bank_id=item.get("bank_id", ""),
+                title=item.get("title", ""),
+                merchant_name=item.get("merchant_name"),
+                category=item.get("category"),
+                benefit_type=item.get("benefit_type"),
+                discount_percent=Decimal(str(item.get("discount_percent", 0))) if item.get("discount_percent") else None,
+                installment_count=item.get("installment_count"),
+                valid_days=item.get("valid_days", []),
+                source_url=item.get("source_url", ""),
+                raw_text=item.get("raw_text"),
+                raw_data={"curated": True},
+                result_quality_score=1.0,
+                result_quality_label="CURATED",
+            )
+            promos.append(promo)
+        except Exception:
+            continue
+    
+    return promos
+
+
+def _dedupe_promotions(promos: List[PromotionModel]) -> List[PromotionModel]:
+    if not promos:
+        return []
+    
+    seen = set()
+    unique = []
+    for p in promos:
+        key = f"{p.bank_id}:{(p.merchant_name or p.title or '').lower()}:{p.discount_percent or ''}"
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    
+    return unique
+
+
+def _score_promotions(promos: List[PromotionModel]) -> List[PromotionModel]:
+    scored = []
+    for p in promos:
+        score = 0.0
+        
+        if p.result_quality_label == "CURATED":
+            score = 1.0
+        elif p.result_quality_label == "actionable":
+            score = 0.8
+        elif p.merchant_name:
+            score = 0.5
+        
+        if p.discount_percent:
+            pct = float(p.discount_percent)
+            if pct >= 20:
+                score += 0.3
+            elif pct >= 15:
+                score += 0.2
+            elif pct >= 10:
+                score += 0.1
+        
+        if p.valid_days:
+            score += 0.1
+        
+        p.result_quality_score = score
+        scored.append(p)
+    
+    return sorted(scored, key=lambda x: x.result_quality_score, reverse=True)
 
 
 def clear_promotions(db_path: str = "bankpromos.db") -> None:

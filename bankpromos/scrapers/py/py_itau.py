@@ -71,8 +71,12 @@ class ItauPromotionsScraper(BasePublicScraper):
             return True
         if title_lower in GENERIC_TITLE_WORDS:
             return True
+        generic_starts = ["beneficios para", "obtene ", "hasta "]
+        for word in generic_starts:
+            if title_lower.startswith(word):
+                return True
         for word in GENERIC_TITLE_WORDS:
-            if title_lower.startswith(f"{word} ") or title_lower.endswith(f" {word}"):
+            if title_lower.endswith(f" {word}"):
                 return True
         return False
 
@@ -158,6 +162,14 @@ class ItauPromotionsScraper(BasePublicScraper):
 
         before_dedupe = self._extracted_count if self._extracted_count > 0 else len(promotions)
         deduped = self._dedupe_promotions(promotions)
+        
+        if not deduped:
+            self._diagnostics.quality_label = "failed"
+        elif any(p.merchant_name for p in deduped):
+            self._diagnostics.quality_label = "actionable"
+        else:
+            self._diagnostics.quality_label = "generic_only"
+            deduped = []
 
         self._finalize_diagnostics(
             url=self._diagnostics.url,
@@ -313,8 +325,10 @@ class ItauPromotionsScraper(BasePublicScraper):
                 body = card.inner_text()
                 promo = self._build_promo(title, body)
                 if promo and self._has_benefit_signal(body):
-                    if promo.merchant_name or _contains_fuel_signal(body) or self._has_real_merchant(body) or float(promo.discount_percent or 0) >= 10:
+                    if promo.merchant_name or _contains_fuel_signal(body) or self._has_real_merchant(body):
                         promotions.append(promo)
+                    else:
+                        self._diagnostics.rejected_generic_count += 1
             except Exception:
                 continue
 
@@ -322,43 +336,7 @@ class ItauPromotionsScraper(BasePublicScraper):
         return promotions
 
     def _extract_from_fallback(self) -> List[PromotionModel]:
-        page = self._ensure_page()
-        promotions: List[PromotionModel] = []
-
-        try:
-            body_text = page.locator("body").inner_text()
-        except Exception:
-            return promotions
-
-        lines = [ln.strip() for ln in body_text.splitlines() if ln.strip()]
-        current_title: Optional[str] = None
-        buffer: List[str] = []
-
-        for line in lines:
-            if line.lower() in self.SKIP_PHRASES:
-                continue
-            if len(line) < 50 and len(line) > 3:
-                if current_title and buffer:
-                    detail = " ".join(buffer)
-                    if self._has_benefit_signal(detail) and not self._is_generic_title(current_title):
-                        promo = self._build_promo(current_title, detail)
-                        if promo and (promo.merchant_name or _contains_fuel_signal(detail) or self._has_real_merchant(detail)):
-                            promotions.append(promo)
-                current_title = line
-                buffer = []
-            else:
-                if current_title:
-                    buffer.append(line)
-
-        if current_title and buffer:
-            detail = " ".join(buffer)
-            if self._has_benefit_signal(detail) and not self._is_generic_title(current_title):
-                promo = self._build_promo(current_title, detail)
-                if promo and (promo.merchant_name or _contains_fuel_signal(detail) or self._has_real_merchant(detail)):
-                    promotions.append(promo)
-
-        self._record_extracted(len(promotions))
-        return promotions
+        return []
 
     def _extract_title_from_card(self, card) -> Optional[str]:
         try:

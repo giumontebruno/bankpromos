@@ -207,12 +207,45 @@ def _sort_key(promo: PromotionModel):
     return (-discount, -cuotas, -quality, promo.title or "")
 
 
+GENERIC_TITLE_WORDS = {
+    "beneficio", "beneficios", "promocion", "promociones", "descuento",
+    "oferta", "exclusivo", "exclusivos", "especial", "especiales",
+    "obtene", "obten", "hasta", "para vos", "para ti", "vos",
+    "comercios", "adheridos", "todos", "generales", "general", "ahorro",
+}
+
+
+def _is_actionable_promo(promo: PromotionModel) -> bool:
+    title_lower = (promo.title or "").lower().strip()
+    if title_lower in GENERIC_TITLE_WORDS:
+        return False
+    for word in GENERIC_TITLE_WORDS:
+        if title_lower.startswith(word + " ") or title_lower == word:
+            return False
+    
+    if promo.merchant_name:
+        return True
+    if promo.result_quality_label == "actionable":
+        return True
+    raw = (promo.raw_text or "").lower()
+    fuel_signals = {"shell", "copetrol", "petropar", "petrobras", "enex", "estacion de servicio"}
+    if any(s in raw for s in fuel_signals):
+        return True
+    return False
+
+
 def query_promotions(
     promos: List[PromotionModel],
     query: str
 ) -> List[PromotionModel]:
     if not promos:
         return []
+
+    actionable = [p for p in promos if _is_actionable_promo(p)]
+    if actionable:
+        promos = actionable
+    else:
+        promos = promos
 
     if not query or not query.strip():
         sorted_promos = sorted(promos, key=_sort_key)
