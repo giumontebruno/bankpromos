@@ -22,15 +22,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml .
 COPY bankpromos bankpromos
+COPY data data
+
+RUN mkdir -p /app/data
+
 RUN pip install --no-cache-dir .
 
 RUN pip install --no-cache-dir playwright && \
     playwright install --with-deps chromium
 
 ENV BANKPROMOS_DB_PATH=/app/data/bankpromos.db
+ENV BANKPROMOS_DISABLE_LIVE_SCRAPING=true
 ENV BANKPROMOS_CACHE_HOURS=12
 
-RUN mkdir -p /app/data
+RUN echo "Build $(date -u)" > /build.txt
 
 EXPOSE 8000
 

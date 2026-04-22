@@ -25,14 +25,13 @@ def get_env_bool(key: str, default: bool = False) -> bool:
 
 
 class Config:
+    DEFAULT_DB_PATH = "/app/data/bankpromos.db"
+
     def __init__(self):
         self.port: int = get_env_int("PORT", 8000)
         self.host: str = "0.0.0.0"
 
-        db_path = get_env("BANKPROMOS_DB_PATH", "data/bankpromos.db")
-        if not db_path.startswith("/") and not db_path.startswith("C:"):
-            db_path = os.path.join(os.getcwd(), db_path)
-        db_path = os.path.normpath(db_path)
+        db_path = os.environ.get("BANKPROMOS_DB_PATH", self.DEFAULT_DB_PATH)
         self.db_path = db_path
 
         self.cache_hours: int = get_env_int("BANKPROMOS_CACHE_HOURS", 12)
@@ -52,6 +51,16 @@ class Config:
 
     def get_database_url(self) -> str:
         return f"sqlite:///{self.db_path}"
+
+    def validate_db_exists(self) -> dict:
+        db_file = Path(self.db_path)
+        exists = db_file.exists()
+        size = db_file.stat().st_size if exists else 0
+        return {
+            "db_path": self.db_path,
+            "exists": exists,
+            "size_bytes": size,
+        }
 
 
 config = Config()

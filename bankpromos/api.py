@@ -23,7 +23,7 @@ from bankpromos.data_service import (
 from bankpromos.fuel_prices import get_fuel_prices
 from bankpromos.fuel_query import find_best_fuel_promotions
 from bankpromos.query_engine import query_promotions
-from bankpromos.storage import init_db
+from bankpromos.storage import init_db, load_promotions, load_fuel_prices, get_last_promotion_update, get_last_fuel_update
 
 logging.basicConfig(level=logging.INFO if not config.debug else logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -77,6 +77,17 @@ class CollectResponse(BaseModel):
     fuel_prices_count: int = 0
     promos_updated: Optional[str] = None
     fuel_updated: Optional[str] = None
+
+
+class DataStatusResponse(BaseModel):
+    db_path: str
+    file_exists: bool
+    file_size_bytes: int
+    promotions_count: int
+    fuel_count: int
+    latest_promotion_inserted_at: Optional[str] = None
+    latest_fuel_inserted_at: Optional[str] = None
+    disable_live_scraping: bool
 
 
 class BankResponse(BaseModel):
@@ -143,14 +154,29 @@ def _serialize_promo(promo) -> Dict[str, Any]:
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info(f"Starting Bank Promos PY API on port {port}...")
+    logger.info(f"[STARTUP] Starting Bank Promos PY API on port {port}...")
+
+    db_info = config.validate_db_exists()
+    logger.info(f"[STARTUP] DB PATH: {db_info['db_path']}")
+    logger.info(f"[STARTUP] EXISTS: {db_info['exists']}")
+    logger.info(f"[STARTUP] SIZE: {db_info['size_bytes']} bytes")
+
     try:
         config.ensure_db_dir()
         init_db(config.db_path)
-        logger.info(f"Database initialized at: {config.db_path}")
     except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
+        logger.error(f"[STARTUP] Failed to initialize database: {e}")
+
+    try:
+        promos = load_promotions(config.db_path)
+        fuel = load_fuel_prices(config.db_path)
+        logger.info(f"[STARTUP] PROMOS: {len(promos)}")
+        logger.info(f"[STARTUP] FUEL: {len(fuel)}")
+    except Exception as e:
+        logger.warning(f"[STARTUP] Could not load data: {e}")
+
+    logger.info(f"[STARTUP] DISABLE_LIVE_SCRAPING: {config.disable_live_scraping}")
+    logger.info(f"[STARTUP] Startup complete")
 
 
 @app.get("/", response_model=HealthResponse)
@@ -180,6 +206,30 @@ async def get_cache():
     except Exception as e:
         logger.error(f"Cache status error: {e}")
         return CacheStatusResponse(promotions_fresh=False, fuel_fresh=False)
+
+
+@app.get("/data-status", response_model=DataStatusResponse)
+async def data_status():
+    try:
+        db_info = config.validate_db_exists()
+        promos = load_promotions(config.db_path)
+        fuel = load_fuel_prices(config.db_path)
+        promo_dt = get_last_promotion_update(config.db_path)
+        fuel_dt = get_last_fuel_update(config.db_path)
+
+        return DataStatusResponse(
+            db_path=db_info["db_path"],
+            file_exists=db_info["exists"],
+            file_size_bytes=db_info["size_bytes"],
+            promotions_count=len(promos),
+            fuel_count=len(fuel),
+            latest_promotion_inserted_at=promo_dt.isoformat() if promo_dt else None,
+            latest_fuel_inserted_at=fuel_dt.isoformat() if fuel_dt else None,
+            disable_live_scraping=config.disable_live_scraping,
+        )
+    except Exception as e:
+        logger.error(f"Data status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/collect", response_model=CollectResponse)
@@ -240,6 +290,7 @@ async def query(
 ):
     try:
         promos = await run_blocking(get_promotions_data, force_refresh=False, db_path=config.db_path)
+        logger.info(f"[QUERY] Loaded {len(promos)} promotions from DB")
 
         results = query_promotions(promos, q)
 
