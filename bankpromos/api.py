@@ -167,13 +167,15 @@ async def health_check():
 async def get_cache():
     try:
         status = get_cache_status(config.db_path)
+        promo_dt = status.get("promotions_updated_at")
+        fuel_dt = status.get("fuel_updated_at")
         return CacheStatusResponse(
             promotions_fresh=status.get("promotions_fresh", False),
             fuel_fresh=status.get("fuel_fresh", False),
             promotions_age_hours=status.get("promotions_age_hours"),
             fuel_age_hours=status.get("fuel_age_hours"),
-            promotions_updated_at=status.get("promotions_updated_at"),
-            fuel_updated_at=status.get("fuel_updated_at"),
+            promotions_updated_at=promo_dt.isoformat() if promo_dt else None,
+            fuel_updated_at=fuel_dt.isoformat() if fuel_dt else None,
         )
     except Exception as e:
         logger.error(f"Cache status error: {e}")
