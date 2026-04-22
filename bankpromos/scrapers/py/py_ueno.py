@@ -14,6 +14,7 @@ except ImportError:
     pdfplumber = None
 
 from bankpromos.core.models import PromotionModel
+from bankpromos.core.normalizer import _is_valid_merchant_name
 from bankpromos.scrapers import register_scraper
 from bankpromos.scrapers.base_public import BasePublicScraper
 
@@ -170,6 +171,28 @@ class UenoPromotionsScraper(BasePublicScraper):
                 return True
         return False
 
+    def _extract_merchant_from_text(self, text: str) -> Optional[str]:
+        lines = text.split("\n")
+
+        for line in lines:
+            line_clean = line.strip()
+            if not line_clean:
+                continue
+            if len(line_clean) < 3 or len(line_clean) > 40:
+                continue
+            if _is_valid_merchant_name(line_clean):
+                return line_clean
+
+        for line in lines:
+            line_clean = line.strip()
+            if len(line_clean) < 3:
+                continue
+            if re.match(r"^[A-Z][a-zA-Z\s&'-]+$", line_clean):
+                if _is_valid_merchant_name(line_clean):
+                    return line_clean
+
+        return None
+
     def _parse_pdf_promotions(self, pdf_url: str) -> List[PromotionModel]:
         if not pdfplumber:
             return []
@@ -268,6 +291,8 @@ class UenoPromotionsScraper(BasePublicScraper):
         lines = text.split("\n")
         title = lines[0] if lines else text[:50]
 
+        merchant = self._extract_merchant_from_text(text)
+
         discount_percent: Optional[Decimal] = None
         installment_count: Optional[int] = None
         valid_days: List[str] = []
@@ -315,7 +340,7 @@ class UenoPromotionsScraper(BasePublicScraper):
         return PromotionModel(
             bank_id=self._get_bank_id(),
             title=title[:100],
-            merchant_name=title[:100],
+            merchant_name=merchant,
             category=category,
             benefit_type=benefit_type,
             discount_percent=discount_percent,
@@ -329,7 +354,50 @@ class UenoPromotionsScraper(BasePublicScraper):
         )
 
     def _build_promo(self, title: str, detail: str) -> Optional[PromotionModel]:
-        return self._build_promo_from_text(f"{title}. {detail}")
+        merchant = self._extract_merchant_from_text(f"{title}\n{detail}")
+
+        full_text = f"{title}. {detail}"
+        pct_match = re.search(r"(\d{1,2})\s*%", full_text, re.I)
+        discount_percent: Optional[Decimal] = Decimal(pct_match.group(1)) if pct_match else None
+
+        benefit_type = None
+        if "reintegro" in full_text.lower():
+            benefit_type = "reintegro"
+        elif "descuento" in full_text.lower():
+            benefit_type = "descuento"
+
+        category = self._infer_category(title, detail)
+
+        days_map = {
+            "lunes": "lunes", "martes": "martes", "miercoles": "miércoles",
+            "jueves": "jueves", "viernes": "viernes", "sabado": "sábado",
+            "sabados": "sábado", "domingo": "domingo", "domingos": "domingo",
+        }
+        valid_days = []
+        for day_key, day_norm in days_map.items():
+            if day_key in full_text.lower():
+                valid_days.append(day_norm)
+
+        dates = self._parse_dates(full_text)
+
+        if not any([discount_percent, valid_days, dates[0], dates[1]]):
+            return None
+
+        return PromotionModel(
+            bank_id=self._get_bank_id(),
+            title=title[:100],
+            merchant_name=merchant,
+            category=category,
+            benefit_type=benefit_type,
+            discount_percent=discount_percent,
+            installment_count=None,
+            valid_days=sorted(list(set(valid_days))),
+            valid_from=dates[0],
+            valid_to=dates[1],
+            source_url=self.BENEFITS_URL,
+            raw_text=full_text[:500],
+            raw_data={"source": "html"},
+        )
 
     def _parse_dates(self, text: str):
         valid_from: Optional[datetime.date] = None
@@ -359,13 +427,13 @@ class UenoPromotionsScraper(BasePublicScraper):
         txt = f"{title} {detail}".lower()
 
         rules = [
+            (["combustible", "estacion", "shell", "petro", "copetrol", "nafta", "diesel"], "Combustible"),
             (["supermercado", "carrito", "stock", "superseis"], "Supermercados"),
             (["gastr", "restaur", "bar", "coffee", "pizza", "sushi"], "Gastronomía"),
             (["ropa", "indumentaria", "moda", "zapateria"], "Indumentaria"),
             (["tecnología", "celular", "tech", "smart"], "Tecnología"),
             (["universidad", "curso", "educacion", "estudio"], "Educación"),
             (["farmacia", "salud", "clinica"], "Salud"),
-            (["combustible", "estacion", "shell", "petro"], "Combustible"),
             (["hogar", "muebleria", "ferreteria"], "Hogar"),
             (["viaje", "vacaciones", "hotel"], "Viajes"),
         ]

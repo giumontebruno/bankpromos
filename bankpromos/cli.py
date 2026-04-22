@@ -4,6 +4,7 @@ from pathlib import Path
 
 from bankpromos import list_scrapers
 from bankpromos.cache import get_cache_status
+from bankpromos.config import config
 from bankpromos.data_service import (
     collect_all_data,
     get_fuel_data,
@@ -70,7 +71,7 @@ def main():
 
     if args.command == "collect":
         force = args.force
-        db_path = args.db
+        db_path = args.db if args.db != DEFAULT_DB else config.db_path
 
         if args.fuel:
             print("Collecting fuel prices...")

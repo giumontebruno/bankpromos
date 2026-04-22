@@ -7,7 +7,7 @@ from bankpromos.cache import is_fuel_cache_fresh, is_promotion_cache_fresh
 from bankpromos.config import config
 from bankpromos.core.deduper import dedupe_promotions
 from bankpromos.core.models import FuelPriceModel, PromotionModel
-from bankpromos.core.normalizer import normalize_promotion
+from bankpromos.core.normalizer import normalize_promotion, _is_weak_promotion
 from bankpromos.core.scoring import score_promotion
 from bankpromos.fuel_prices import get_fuel_prices
 from bankpromos.run_all import run_all_scrapers, run_scraper
@@ -25,12 +25,17 @@ from bankpromos.storage import (
 logger = logging.getLogger(__name__)
 
 
+def _filter_weak_promotions(promos: List[PromotionModel]) -> List[PromotionModel]:
+    return [p for p in promos if not _is_weak_promotion(p)]
+
+
 def _process_promotions(promos: List[PromotionModel]) -> List[PromotionModel]:
     if not promos:
         return []
 
     normalized = [normalize_promotion(p) for p in promos]
-    deduped = dedupe_promotions(normalized)
+    filtered = _filter_weak_promotions(normalized)
+    deduped = dedupe_promotions(filtered)
     scored = [score_promotion(p) for p in deduped]
 
     return scored

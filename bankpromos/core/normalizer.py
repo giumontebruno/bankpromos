@@ -11,7 +11,7 @@ MERCHANT_ALIASES = {
     "super 6": "Superseis",
     "supermercado stock": "Stock",
     "stock": "Stock",
-    "g秘astro": "Gastronomía",
+    "gastronomo": "Gastronomía",
     "gastr": "Gastronomía",
     "granada": "Granada",
     "cpf": "CPF",
@@ -65,15 +65,116 @@ BENEFIT_ALIASES = {
     "0%": "sin_interés",
 }
 
+INVALID_MERCHANT_PATTERNS = {
+    "pure_numbers": [r"^\d+$", r"^\d+\s*$"],
+    "generic_words": {
+        "obtene", "obtené", "hasta", "promociones", "beneficios", "vigencia",
+        "valido", "válido", "consumo", "exclusivo", "exclusivos", "exclusiva",
+        "aplica", "aplican", "condiciones", "consulta", "ver mas", "ver más",
+        "conoce", "descubre", "nuevos", "nueva", "nuevas", "disfruta",
+        "especial", "limitado", "stock", "cat", "catálogo", "catalogo",
+        "todo", "todos", "todas", "dias", "días", "lunes", "martes",
+        "miercoles", "miércoles", "jueves", "viernes", "sabado", "sábado",
+        "domingo", "domingos", "general",
+    },
+    "percentage_fragments": {
+        "%", "%", "%", "%", "%", "%", "%", "%", "%", "%",
+    },
+}
+
+FUEL_EMBLEMS = {"shell", "copetrol", "petropar", "petrobras", "enex", "fp"}
+
+
+def _is_valid_merchant_candidate(text: Optional[str]) -> bool:
+    if not text:
+        return False
+
+    cleaned = text.strip()
+    if not cleaned:
+        return False
+
+    cleaned_lower = cleaned.lower()
+
+    if len(cleaned) <= 2:
+        return False
+
+    if re.match(r"^\d+$", cleaned):
+        return False
+
+    for pattern in INVALID_MERCHANT_PATTERNS["pure_numbers"]:
+        if re.match(pattern, cleaned):
+            return False
+
+    for word in INVALID_MERCHANT_PATTERNS["generic_words"]:
+        if cleaned_lower == word or cleaned_lower == f"% {word}%" or cleaned_lower.startswith(f"{word} "):
+            return True
+
+    if len(cleaned) >= 2 and cleaned.isdigit():
+        return False
+
+    if len(cleaned) <= 3 and cleaned.isalpha():
+        return False
+
+    percent_match = re.match(r"^\d+\s*%?\s*$", cleaned)
+    if percent_match:
+        return False
+
+    if cleaned_lower in {"%"}:
+        return False
+
+    return True
+
+
+def _is_valid_merchant_name(text: Optional[str]) -> bool:
+    if not text:
+        return False
+
+    if not _is_valid_merchant_candidate(text):
+        return False
+
+    cleaned_lower = text.lower().strip()
+
+    valid_generic_words = {"stock"}
+    for word in INVALID_MERCHANT_PATTERNS["generic_words"]:
+        if cleaned_lower == word and cleaned_lower not in valid_generic_words:
+            return False
+
+    if re.match(r"^\d+\s*%?$", text):
+        return False
+
+    if text.strip().isdigit():
+        return False
+
+    return True
+
+
+def _contains_fuel_signal(text: str) -> bool:
+    text_lower = text.lower()
+    fuel_signals = {
+        "combustible", "estacion de servicio", "estacion", "shell", "copetrol",
+        "petropar", "petrobras", "enex", "nafta", "diesel", "gnc", "gasolina",
+        "reintegro combustible", "descuento combustible", "estacion shell",
+    }
+    for signal in fuel_signals:
+        if signal in text_lower:
+            return True
+    return False
+
 
 def normalize_merchant_name(name: Optional[str]) -> Optional[str]:
     if not name:
+        return None
+
+    if not _is_valid_merchant_candidate(name):
         return None
 
     normalized = name.strip()
     normalized = re.sub(r"\s+", " ", normalized)
     normalized = re.sub(r"[^\w\s&'-]", "", normalized)
     normalized = normalized.title()
+
+    if not _is_valid_merchant_name(normalized):
+        return None
 
     key = normalized.lower()
     if key in MERCHANT_ALIASES:
@@ -86,24 +187,38 @@ def normalize_merchant_name(name: Optional[str]) -> Optional[str]:
     if len(normalized) > 30:
         words = normalized.split()
         if len(words) >= 2:
-            return words[0]
+            candidate = words[0]
+            if _is_valid_merchant_name(candidate):
+                return candidate
+            return None
 
     return normalized
 
 
-def normalize_category(category: Optional[str]) -> Optional[str]:
+def normalize_category(category: Optional[str], raw_text: str = "") -> Optional[str]:
     if not category:
+        if raw_text and _contains_fuel_signal(raw_text):
+            return "Combustible"
         return None
 
     normalized = category.strip()
     normalized = normalized.lower()
 
     if normalized in CATEGORY_ALIASES:
-        return CATEGORY_ALIASES[normalized]
+        result = CATEGORY_ALIASES[normalized]
+        if result == "Combustible":
+            return "Combustible"
+        return result
 
     for alias, canonical in CATEGORY_ALIASES.items():
         if alias in normalized or normalized in alias:
             return canonical
+
+    if "combustible" in normalized or "estacion" in normalized or "shell" in normalized:
+        return "Combustible"
+
+    if raw_text and _contains_fuel_signal(raw_text):
+        return "Combustible"
 
     return category.capitalize()
 
@@ -135,14 +250,69 @@ def normalize_benefit_type(benefit_type: Optional[str], title: str, detail: str)
     return None
 
 
-def normalize_promotion(promo: PromotionModel) -> PromotionModel:
-    merchant = normalize_merchant_name(promo.merchant_name)
-    if not merchant and promo.title:
-        merchant = normalize_merchant_name(promo.title)
+def _infer_category_from_text(title: str, detail: str = "") -> Optional[str]:
+    txt = f"{title} {detail}".lower()
 
-    category = normalize_category(promo.category)
+    rules = [
+        (["combustible", "estacion", "shell", "petro", "copetrol", "petropar", "petrobras", "enex", "nafta", "diesel"], "Combustible"),
+        (["supermercado", "carrito", "stock", "superseis"], "Supermercados"),
+        (["gastr", "restaur", "bar", "coffee", "pizza", "sushi", "comida", "delivery"], "Gastronomía"),
+        (["ropa", "indumentaria", "moda", "zapateria"], "Indumentaria"),
+        (["tecnología", "celular", "tech", "smart", "electro"], "Tecnología"),
+        (["universidad", "curso", "educacion", "estudio"], "Educación"),
+        (["farmacia", "salud", "clinica"], "Salud"),
+        (["hogar", "muebleria", "ferreteria"], "Hogar"),
+        (["viaje", "vacaciones", "hotel"], "Viajes"),
+    ]
+
+    for keywords, category in rules:
+        if any(kw in txt for kw in keywords):
+            return category
+
+    return None
+
+
+def _is_weak_promotion(promo: PromotionModel) -> bool:
+    title = (promo.title or "").strip().lower()
+    merchant = (promo.merchant_name or "").strip().lower()
+    category = (promo.category or "").lower()
+    raw = (promo.raw_text or "").lower()
+
+    title_is_generic = any(
+        title == word or title.startswith(f"{word} ") or title.endswith(f" {word}")
+        for word in INVALID_MERCHANT_PATTERNS["generic_words"]
+    )
+    if title_is_generic and not merchant:
+        return True
+
+    if re.match(r"^\d+\s*%?$", title) and not merchant:
+        return True
+
+    if not merchant and category == "general":
+        if _contains_fuel_signal(raw):
+            return False
+        if promo.discount_percent or promo.installment_count:
+            return False
+        return True
+
+    return False
+
+
+def normalize_promotion(promo: PromotionModel) -> Optional[PromotionModel]:
+    merchant = normalize_merchant_name(promo.merchant_name)
+
+    if not merchant and promo.title:
+        title_merchant = normalize_merchant_name(promo.title)
+        if title_merchant and _is_valid_merchant_name(title_merchant):
+            merchant = title_merchant
+
+    category = normalize_category(promo.category, promo.raw_text or "")
     if not category:
-        category = promo.category
+        inferred = _infer_category_from_text(promo.title or "", promo.raw_text or "")
+        if inferred:
+            category = inferred
+        else:
+            category = promo.category
 
     benefit_type = normalize_benefit_type(
         promo.benefit_type, promo.title or "", promo.raw_text or ""
@@ -165,4 +335,6 @@ def normalize_promotion(promo: PromotionModel) -> PromotionModel:
         raw_text=promo.raw_text,
         raw_data=promo.raw_data,
         scraped_at=promo.scraped_at,
+        result_quality_score=promo.result_quality_score,
+        result_quality_label=promo.result_quality_label,
     )

@@ -16,9 +16,9 @@ FUEL_KEYWORDS = {"combustible", "nafta", "diesel", "gasolina", "gnc", "estacion"
 
 
 def _is_fuel_promo(promo: PromotionModel) -> bool:
-    text = f"{promo.title or ''} {promo.merchant_name or ''} {promo.category or ''}".lower()
+    text = f"{promo.title or ''} {promo.merchant_name or ''} {promo.category or ''} {promo.raw_text or ''}".lower()
 
-    if "combustible" in text or "estacion" in text or "shell" in text or "nafta" in text or "diesel" in text or "gnc" in text:
+    if "combustible" in text or "estacion" in text or "nafta" in text or "diesel" in text or "gnc" in text or "gasolina" in text:
         return True
 
     if promo.category:
@@ -30,7 +30,36 @@ def _is_fuel_promo(promo: PromotionModel) -> bool:
         if emblem in text:
             return True
 
+    if promo.merchant_name:
+        merchant_lower = promo.merchant_name.lower()
+        for emb in PY_FUEL_EMBLEMS:
+            if emb in merchant_lower:
+                return True
+
     return False
+
+
+def _extract_emblem_from_text(text: str) -> Optional[str]:
+    text_lower = text.lower()
+
+    emblem_map = {
+        "shell": ["shell", "shell mcal", "shell madal"],
+        "copetrol": ["copetrol"],
+        "petropar": ["petropar"],
+        "petrobras": ["petrobras"],
+        "enex": ["enex"],
+    }
+
+    for emblem, aliases in emblem_map.items():
+        for alias in aliases:
+            if alias in text_lower:
+                return emblem
+
+    for emblem in PY_FUEL_EMBLEMS:
+        if emblem in text_lower:
+            return emblem
+
+    return None
 
 
 def _calculate_final_price(base_price: Decimal, discount_percent: Optional[Decimal]) -> Decimal:
@@ -50,9 +79,9 @@ def find_best_fuel_promotions(
     fuel_type: str,
     emblem: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    promos = [p for p in promos if _is_fuel_promo(p)]
+    fuel_promos = [p for p in promos if _is_fuel_promo(p)]
 
-    if not promos:
+    if not fuel_promos:
         return []
 
     if not fuel_prices:
@@ -92,24 +121,25 @@ def find_best_fuel_promotions(
 
     base_price = fuel_price.price
 
-    for promo in promos:
-        promo_text = f"{promo.title or ''} {promo.merchant_name or ''}".lower()
+    for promo in fuel_promos:
+        promo_text = f"{promo.title or ''} {promo.merchant_name or ''} {promo.raw_text or ''}".lower()
 
-        promo_emblem = None
-        for emb in PY_FUEL_EMBLEMS:
-            if emb in promo_text:
-                promo_emblem = emb
-                break
+        promo_emblem = _extract_emblem_from_text(promo_text)
 
         if filtered_emblem and promo_emblem and promo_emblem != filtered_emblem:
             continue
 
-        promo_fuel_price = find_price(fuel_prices, filtered_fuel_type, promo_emblem) if promo_emblem else None
-
-        if not promo_fuel_price:
-            promo_fuel_price = fuel_price
-
-        promo_base = promo_fuel_price.price if promo_fuel_price else base_price
+        if filtered_emblem and not promo_emblem:
+            promo_base_fuel = find_price(fuel_prices, filtered_fuel_type, filtered_emblem)
+            if promo_base_fuel:
+                promo_base = promo_base_fuel.price
+            else:
+                promo_base = base_price
+        elif promo_emblem:
+            promo_base_fuel = find_price(fuel_prices, filtered_fuel_type, promo_emblem)
+            promo_base = promo_base_fuel.price if promo_base_fuel else base_price
+        else:
+            promo_base = base_price
 
         discount = promo.discount_percent
         if not discount:

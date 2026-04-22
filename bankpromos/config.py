@@ -30,8 +30,9 @@ class Config:
         self.host: str = "0.0.0.0"
 
         db_path = get_env("BANKPROMOS_DB_PATH", "data/bankpromos.db")
-        if not db_path.startswith("/"):
+        if not db_path.startswith("/") and not db_path.startswith("C:"):
             db_path = os.path.join(os.getcwd(), db_path)
+        db_path = os.path.normpath(db_path)
         self.db_path = db_path
 
         self.cache_hours: int = get_env_int("BANKPROMOS_CACHE_HOURS", 12)

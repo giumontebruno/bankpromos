@@ -3,10 +3,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
 from bankpromos.core.models import PromotionModel
-from bankpromos.fuel_prices import normalize_fuel_type as _norm_fuel_type, normalize_emblem as _norm_emblem
+from bankpromos.fuel_prices import normalize_fuel_type as _norm_fuel_type, normalize_emblem as _norm_emblem, PY_FUEL_EMBLEMS
 
 CATEGORY_KEYWORDS: Dict[str, Set[str]] = {
-    "combustible": {"combustible", "nafta", "gasolina", "gnc", "estacion", "shell", "petropar", "pf"},
+    "combustible": {"combustible", "nafta", "gasolina", "gnc", "estacion", "estacion de servicio", "shell", "copetrol", "petropar", "petrobras", "enex", "pf"},
     "supermercados": {"supermercado", "super", "carrito", "stock", "superseis", "grifo"},
     "gastronomia": {"gastronomia", "restaurante", "restaurant", "bar", "cafe", "coffee", "pizza", "sushi", "delivery", "comida"},
     "tecnologia": {"tecnologia", "tecnologia", "tech", "celular", "smartphone", "electrodomestico", "electro", "computadora", "notebook"},
@@ -122,7 +122,7 @@ def _category_match(promo: PromotionModel, category: Optional[str]) -> bool:
     if not category:
         return True
 
-    promo_text = _normalize_text(f"{promo.title or ''} {promo.merchant_name or ''} {promo.category or ''}")
+    promo_text = _normalize_text(f"{promo.title or ''} {promo.merchant_name or ''} {promo.category or ''} {promo.raw_text or ''}")
 
     category_keywords = CATEGORY_KEYWORDS.get(category, set())
     for kw in category_keywords:
@@ -133,6 +133,11 @@ def _category_match(promo: PromotionModel, category: Optional[str]) -> bool:
         promo_cat_norm = _normalize_text(promo.category)
         if category in promo_cat_norm or promo_cat_norm in category:
             return True
+
+    if category == "combustible":
+        for emblem in PY_FUEL_EMBLEMS:
+            if emblem in promo_text:
+                return True
 
     return False
 
@@ -169,7 +174,7 @@ def _keyword_match(promo: PromotionModel, keywords: List[str]) -> bool:
     if not keywords:
         return True
 
-    promo_text = _normalize_text(f"{promo.title or ''} {promo.merchant_name or ''}")
+    promo_text = _normalize_text(f"{promo.title or ''} {promo.merchant_name or ''} {promo.raw_text or ''}")
 
     for kw in keywords:
         if kw in promo_text:
