@@ -31,12 +31,14 @@ htmlcov/
 *.cover
 
 .mypy_cache/
-.ruff_cache/
+.rruff_cache/
 
-*.db
-*.db-journal
-data/
+data/*.log
 debug_output/
+
+*.db-journal
+playwright/
+.ms-playwright/
 
 *.log
 *.swp

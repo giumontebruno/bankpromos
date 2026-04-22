@@ -36,6 +36,7 @@ class Config:
 
         self.cache_hours: int = get_env_int("BANKPROMOS_CACHE_HOURS", 12)
         self.debug: bool = get_env_bool("BANKPROMOS_DEBUG", False)
+        self.disable_live_scraping: bool = get_env_bool("BANKPROMOS_DISABLE_LIVE_SCRAPING", False)
 
         self.cors_origins: list = []
         cors_env = get_env("BANKPROMOS_CORS_ORIGINS")
