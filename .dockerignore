@@ -8,9 +8,7 @@ __pycache__
 .venv
 venv/
 env/
-*.db
 *.db-journal
-data/
 debug_output/
 *.log
 .env
@@ -32,3 +30,11 @@ LICENSE
 Makefile
 uv.lock
 *.md
+*.db-journal
+playwright-report/
+test-results/
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+.git
