@@ -5,10 +5,24 @@ from decimal import Decimal
 from typing import List, Optional, Set
 
 from bankpromos.core.models import PromotionModel
+from bankpromos.core.normalizer import _is_valid_merchant_name, _contains_fuel_signal
 from bankpromos.scrapers import register_scraper
 from bankpromos.scrapers.base_public import BasePublicScraper
 
 logger = logging.getLogger(__name__)
+
+VALID_MERCHANT_INDICATORS = {
+    "shell", "copetrol", "petropar", "petrobras", "enex", "pf",
+    "superseis", "stock", "carrefour",
+    "restaurant", "restaurante", "pizza", "sushi", "café", "bar",
+}
+
+GENERIC_TITLE_WORDS = {
+    "beneficio", "beneficios", "promocion", "promociones", "descuento",
+    "oferta", "exclusivo", "exclusivos", "especial", "especiales",
+    "obtene", "obten", "hasta", "para vos", "para ti",
+    "comercios", "adheridos", "todos", "generales", "general",
+}
 
 
 @register_scraper("py_itau")
@@ -33,6 +47,55 @@ class ItauPromotionsScraper(BasePublicScraper):
 
     def _get_bank_id(self) -> str:
         return "py_itau"
+
+    def _is_generic_title(self, title: str) -> bool:
+        title_lower = title.lower().strip()
+        if not title_lower:
+            return True
+        if len(title_lower) < 4:
+            return True
+        if re.match(r"^\d+\s*%?\s*$", title_lower):
+            return True
+        if title_lower in GENERIC_TITLE_WORDS:
+            return True
+        for word in GENERIC_TITLE_WORDS:
+            if title_lower.startswith(f"{word} ") or title_lower.endswith(f" {word}"):
+                return True
+        return False
+
+    def _has_real_merchant(self, text: str) -> bool:
+        text_lower = text.lower()
+        if any(indicator in text_lower for indicator in VALID_MERCHANT_INDICATORS):
+            return True
+        return False
+
+    def _extract_merchant_from_card(self, card) -> Optional[str]:
+        try:
+            for selector in ["[class*='merchant']", "[class*='brand']", "[class*='name']", "[class*='partner']"]:
+                el = card.locator(selector).first
+                if el.count() > 0:
+                    text = el.inner_text().strip()
+                    if text and len(text) > 2 and len(text) < 50:
+                        if _is_valid_merchant_name(text):
+                            return text
+
+            lines = card.inner_text().split("\n")
+            for line in lines:
+                line_clean = line.strip()
+                if len(line_clean) >= 3 and len(line_clean) <= 40:
+                    line_lower = line_clean.lower()
+                    if any(indicator in line_lower for indicator in VALID_MERCHANT_INDICATORS):
+                        if _is_valid_merchant_name(line_clean):
+                            return line_clean
+
+            for line in lines:
+                line_clean = line.strip()
+                if len(line_clean) >= 3 and len(line_clean) <= 40:
+                    if _is_valid_merchant_name(line_clean):
+                        return line_clean
+        except Exception:
+            pass
+        return None
 
     def _scrape_promotions(self) -> List[PromotionModel]:
         page = self._ensure_page()
@@ -71,10 +134,14 @@ class ItauPromotionsScraper(BasePublicScraper):
                 if not title or len(title) < 3:
                     continue
 
+                if self._is_generic_title(title):
+                    continue
+
                 body = card.inner_text()
                 promo = self._build_promo(title, body)
                 if promo and self._has_benefit_signal(body):
-                    promotions.append(promo)
+                    if promo.merchant_name or _contains_fuel_signal(body) or self._has_real_merchant(body):
+                        promotions.append(promo)
             except Exception:
                 continue
 
@@ -128,9 +195,9 @@ class ItauPromotionsScraper(BasePublicScraper):
             if len(line) < 50 and len(line) > 3:
                 if current_title and buffer:
                     detail = " ".join(buffer)
-                    if self._has_benefit_signal(detail):
+                    if self._has_benefit_signal(detail) and not self._is_generic_title(current_title):
                         promo = self._build_promo(current_title, detail)
-                        if promo:
+                        if promo and (promo.merchant_name or _contains_fuel_signal(detail) or self._has_real_merchant(detail)):
                             promotions.append(promo)
                 current_title = line
                 buffer = []
@@ -140,9 +207,9 @@ class ItauPromotionsScraper(BasePublicScraper):
 
         if current_title and buffer:
             detail = " ".join(buffer)
-            if self._has_benefit_signal(detail):
+            if self._has_benefit_signal(detail) and not self._is_generic_title(current_title):
                 promo = self._build_promo(current_title, detail)
-                if promo:
+                if promo and (promo.merchant_name or _contains_fuel_signal(detail) or self._has_real_merchant(detail)):
                     promotions.append(promo)
 
         return promotions
@@ -171,6 +238,12 @@ class ItauPromotionsScraper(BasePublicScraper):
     def _build_promo(self, title: str, detail: str) -> Optional[PromotionModel]:
         full_text = f"{title}. {detail}"
 
+        if self._is_generic_title(title):
+            if not _contains_fuel_signal(full_text) and not self._has_real_merchant(full_text):
+                return None
+
+        merchant_name = self._extract_merchant_from_text(full_text)
+
         discount_percent: Optional[Decimal] = None
         installment_count: Optional[int] = None
         valid_days: List[str] = []
@@ -178,7 +251,6 @@ class ItauPromotionsScraper(BasePublicScraper):
         valid_to: Optional[datetime.date] = None
         benefit_type: Optional[str] = None
         category = self._infer_category(title, detail)
-        merchant_name = self._infer_merchant(title)
 
         pct_match = re.search(r"(\d{1,2})\s*%", full_text, re.I)
         if pct_match:
@@ -234,6 +306,24 @@ class ItauPromotionsScraper(BasePublicScraper):
             raw_data={"source": "html"},
         )
 
+    def _extract_merchant_from_text(self, text: str) -> Optional[str]:
+        lines = text.split("\n")
+        for line in lines:
+            line_clean = line.strip()
+            if len(line_clean) >= 3 and len(line_clean) <= 40:
+                line_lower = line_clean.lower()
+                if any(indicator in line_lower for indicator in VALID_MERCHANT_INDICATORS):
+                    if _is_valid_merchant_name(line_clean):
+                        return line_clean
+
+        for line in lines:
+            line_clean = line.strip()
+            if len(line_clean) >= 3 and len(line_clean) <= 40:
+                if _is_valid_merchant_name(line_clean):
+                    return line_clean
+
+        return None
+
     def _parse_dates(self, text: str):
         valid_from: Optional[datetime.date] = None
         valid_to: Optional[datetime.date] = None
@@ -258,24 +348,17 @@ class ItauPromotionsScraper(BasePublicScraper):
 
         return valid_from, valid_to
 
-    def _infer_merchant(self, title: str) -> Optional[str]:
-        generic = {"beneficio", "promoción", "descuento", "oferta", "exclusivo"}
-        title_lower = title.lower()
-        if title_lower in generic or len(title) < 4:
-            return None
-        return title
-
     def _infer_category(self, title: str, detail: str) -> Optional[str]:
         txt = f"{title} {detail}".lower()
 
         rules = [
+            (["combustible", "estacion", "shell", "petro", "copetrol", "nafta", "diesel", "enex"], "Combustible"),
             (["supermercado", "carrito", "stock"], "Supermercados"),
             (["gastr", "restaur", "bar", "coffee", "pizza"], "Gastronomía"),
             (["ropa", "indumentaria", "moda"], "Indumentaria"),
             (["tecnología", "celular", "tech"], "Tecnología"),
             (["universidad", "curso", "educacion"], "Educación"),
             (["farmacia", "salud", "clinica"], "Salud"),
-            (["combustible", "estacion", "shell"], "Combustible"),
             (["hogar", "muebleria", "ferreteria"], "Hogar"),
             (["viaje", "vacaciones", "hotel"], "Viajes"),
         ]

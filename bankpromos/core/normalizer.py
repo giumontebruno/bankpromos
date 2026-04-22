@@ -275,11 +275,24 @@ def _infer_category_from_text(title: str, detail: str = "") -> Optional[str]:
 def _is_actionable_promotion(promo: PromotionModel) -> bool:
     merchant = (promo.merchant_name or "").strip().lower()
     raw = (promo.raw_text or "").lower()
+    title = (promo.title or "").strip().lower()
 
     if merchant and _is_valid_merchant_name(merchant):
         return True
 
     if _contains_fuel_signal(raw):
+        return True
+
+    if promo.discount_percent and float(promo.discount_percent) >= 10:
+        return True
+
+    if promo.installment_count and promo.installment_count >= 3:
+        return True
+
+    if title and not any(
+        title == word or title.startswith(f"{word} ") or title.endswith(f" {word}")
+        for word in INVALID_MERCHANT_PATTERNS["generic_words"]
+    ):
         return True
 
     return False

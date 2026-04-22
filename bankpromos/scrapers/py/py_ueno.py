@@ -14,11 +14,25 @@ except ImportError:
     pdfplumber = None
 
 from bankpromos.core.models import PromotionModel
-from bankpromos.core.normalizer import _is_valid_merchant_name
+from bankpromos.core.normalizer import _is_valid_merchant_name, _contains_fuel_signal
 from bankpromos.scrapers import register_scraper
 from bankpromos.scrapers.base_public import BasePublicScraper
 
 logger = logging.getLogger(__name__)
+
+VALID_MERCHANT_INDICATORS = {
+    "shell", "copetrol", "petropar", "petrobras", "enex", "pf",
+    "superseis", "stock", "carrefour", "希超级", "大超市",
+    "restaurant", "restaurante", "pizza", "sushi", "café", "bar",
+}
+
+GENERIC_TITLE_PATTERNS = {
+    "obtené", "obten", "hasta", "promociones", "beneficios", "beneficio",
+    "especiales", "especial", "todos", "días", "dias", "comercios",
+    "adheridos", "ahorrar", "ahorro", "para vos", "para ti",
+    "vigencia", "válido", "valido", "consultá", "consulta",
+    "%", "reintegro", "descuento",
+}
 
 
 @register_scraper("py_ueno")
@@ -54,6 +68,52 @@ class UenoPromotionsScraper(BasePublicScraper):
 
     def _get_bank_id(self) -> str:
         return "py_ueno"
+
+    def _is_generic_title(self, title: str) -> bool:
+        title_lower = title.lower().strip()
+        if not title_lower:
+            return True
+        if len(title_lower) < 5:
+            return True
+        if re.match(r"^\d+\s*%?\s*$", title_lower):
+            return True
+        if title_lower in GENERIC_TITLE_PATTERNS:
+            return True
+        for word in GENERIC_TITLE_PATTERNS:
+            if title_lower == word or title_lower.startswith(f"{word} "):
+                return True
+        return False
+
+    def _has_fuel_signal(self, text: str) -> bool:
+        return _contains_fuel_signal(text)
+
+    def _extract_merchant_from_card(self, card) -> Optional[str]:
+        try:
+            for selector in ["[class*='merchant']", "[class*='brand']", "[class*='name']", "[class*='partner']"]:
+                el = card.locator(selector).first
+                if el.count() > 0:
+                    text = el.inner_text().strip()
+                    if text and len(text) > 2 and len(text) < 50:
+                        if _is_valid_merchant_name(text):
+                            return text
+
+            lines = card.inner_text().split("\n")
+            for line in lines:
+                line_clean = line.strip()
+                if len(line_clean) >= 3 and len(line_clean) <= 40:
+                    line_lower = line_clean.lower()
+                    if any(indicator in line_lower for indicator in VALID_MERCHANT_INDICATORS):
+                        if _is_valid_merchant_name(line_clean):
+                            return line_clean
+
+            for line in lines:
+                line_clean = line.strip()
+                if len(line_clean) >= 3 and len(line_clean) <= 40:
+                    if _is_valid_merchant_name(line_clean):
+                        return line_clean
+        except Exception:
+            pass
+        return None
 
     def _scrape_promotions(self) -> List[PromotionModel]:
         page = self._ensure_page()
@@ -123,10 +183,14 @@ class UenoPromotionsScraper(BasePublicScraper):
                 if not title:
                     continue
 
+                if self._is_generic_title(title):
+                    continue
+
                 body = card.inner_text()
                 promo = self._build_promo(title, body)
                 if promo and self._has_benefit_signal(body):
-                    promotions.append(promo)
+                    if promo.merchant_name or self._has_fuel_signal(body):
+                        promotions.append(promo)
             except Exception:
                 continue
 
@@ -138,7 +202,7 @@ class UenoPromotionsScraper(BasePublicScraper):
                 if len(line) > 10 and len(line) < 80:
                     if self._has_benefit_signal(line):
                         promo = self._build_promo(line, "")
-                        if promo:
+                        if promo and (promo.merchant_name or self._has_fuel_signal(line)):
                             promotions.append(promo)
 
         return promotions
@@ -187,9 +251,9 @@ class UenoPromotionsScraper(BasePublicScraper):
             line_clean = line.strip()
             if len(line_clean) < 3:
                 continue
-            if re.match(r"^[A-Z][a-zA-Z\s&'-]+$", line_clean):
-                if _is_valid_merchant_name(line_clean):
-                    return line_clean
+            line_lower = line_clean.lower()
+            if any(indicator in line_lower for indicator in VALID_MERCHANT_INDICATORS):
+                return line_clean
 
         return None
 
@@ -227,7 +291,7 @@ class UenoPromotionsScraper(BasePublicScraper):
                     for block in promo_texts:
                         if self._has_benefit_signal(block):
                             promo = self._build_promo_from_text(block)
-                            if promo:
+                            if promo and (promo.merchant_name or self._has_fuel_signal(block)):
                                 promotions.append(promo)
 
             return promotions
@@ -290,6 +354,9 @@ class UenoPromotionsScraper(BasePublicScraper):
     def _build_promo_from_text(self, text: str) -> Optional[PromotionModel]:
         lines = text.split("\n")
         title = lines[0] if lines else text[:50]
+
+        if self._is_generic_title(title):
+            title = "Promoción Ueno"
 
         merchant = self._extract_merchant_from_text(text)
 
@@ -354,9 +421,13 @@ class UenoPromotionsScraper(BasePublicScraper):
         )
 
     def _build_promo(self, title: str, detail: str) -> Optional[PromotionModel]:
-        merchant = self._extract_merchant_from_text(f"{title}\n{detail}")
-
         full_text = f"{title}. {detail}"
+
+        merchant = self._extract_merchant_from_text(detail)
+
+        if not merchant:
+            merchant = self._extract_merchant_from_card_text(detail)
+
         pct_match = re.search(r"(\d{1,2})\s*%", full_text, re.I)
         discount_percent: Optional[Decimal] = Decimal(pct_match.group(1)) if pct_match else None
 
@@ -399,6 +470,17 @@ class UenoPromotionsScraper(BasePublicScraper):
             raw_data={"source": "html"},
         )
 
+    def _extract_merchant_from_card_text(self, text: str) -> Optional[str]:
+        lines = text.split("\n")
+        for line in lines:
+            line_clean = line.strip()
+            if len(line_clean) >= 3 and len(line_clean) <= 40:
+                line_lower = line_clean.lower()
+                if any(indicator in line_lower for indicator in VALID_MERCHANT_INDICATORS):
+                    if _is_valid_merchant_name(line_clean):
+                        return line_clean
+        return None
+
     def _parse_dates(self, text: str):
         valid_from: Optional[datetime.date] = None
         valid_to: Optional[datetime.date] = None
@@ -427,7 +509,7 @@ class UenoPromotionsScraper(BasePublicScraper):
         txt = f"{title} {detail}".lower()
 
         rules = [
-            (["combustible", "estacion", "shell", "petro", "copetrol", "nafta", "diesel"], "Combustible"),
+            (["combustible", "estacion", "shell", "petro", "copetrol", "nafta", "diesel", "enex"], "Combustible"),
             (["supermercado", "carrito", "stock", "superseis"], "Supermercados"),
             (["gastr", "restaur", "bar", "coffee", "pizza", "sushi"], "Gastronomía"),
             (["ropa", "indumentaria", "moda", "zapateria"], "Indumentaria"),
