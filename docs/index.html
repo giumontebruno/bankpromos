@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bank Promos PY</title>
+  <meta name="description" content="Consultá promociones bancarias y el mejor ahorro en combustible en Paraguay." />
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>Bank Promos PY</h1>
+      <p class="subtitle">Consultá promociones bancarias y el mejor ahorro en combustible</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="status-bar" id="statusBar">
+      <div class="status-item"><strong>Promos:</strong> <span id="promosCount">-</span></div>
+      <div class="status-item"><strong>Fuel:</strong> <span id="fuelCount">-</span></div>
+      <div class="status-item"><strong>Curated:</strong> <span id="curatedCount">-</span></div>
+      <div class="status-item"><strong>Scraped:</strong> <span id="scrapedCount">-</span></div>
+    </section>
+
+    <section class="tabs">
+      <button class="tab active" data-tab="promos">Promociones</button>
+      <button class="tab" data-tab="fuel">Combustible</button>
+    </section>
+
+    <section id="promosTab" class="tab-panel active">
+      <div class="search-box">
+        <input id="promoQuery" type="text" placeholder="Ej: combustible, supermercado, tecnología" />
+        <button id="promoSearchBtn">Buscar promociones</button>
+      </div>
+      <div id="promoState" class="state"></div>
+      <div id="promoResults" class="cards"></div>
+    </section>
+
+    <section id="fuelTab" class="tab-panel">
+      <div class="search-box">
+        <input id="fuelQuery" type="text" placeholder="Ej: nafta 95, shell 97, copetrol" />
+        <button id="fuelSearchBtn">Ver mejor ahorro</button>
+      </div>
+      <div id="fuelState" class="state"></div>
+      <div id="fuelResults"></div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
