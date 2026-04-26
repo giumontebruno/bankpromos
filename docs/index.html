@@ -9,44 +9,125 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="container">
-      <h1>Bank Promos PY</h1>
-      <p class="subtitle">Consultá promociones bancarias y el mejor ahorro en combustible</p>
-    </div>
-  </header>
-
-  <main class="container">
-    <section class="status-bar" id="statusBar">
-      <div class="status-item"><strong>Promos:</strong> <span id="promosCount">-</span></div>
-      <div class="status-item"><strong>Fuel:</strong> <span id="fuelCount">-</span></div>
-      <div class="status-item"><strong>Curated:</strong> <span id="curatedCount">-</span></div>
-      <div class="status-item"><strong>Scraped:</strong> <span id="scrapedCount">-</span></div>
-    </section>
-
-    <section class="tabs">
-      <button class="tab active" data-tab="promos">Promociones</button>
-      <button class="tab" data-tab="fuel">Combustible</button>
-    </section>
-
-    <section id="promosTab" class="tab-panel active">
-      <div class="search-box">
-        <input id="promoQuery" type="text" placeholder="Ej: combustible, supermercado, tecnología" />
-        <button id="promoSearchBtn">Buscar promociones</button>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">BP</div>
+        <span class="sidebar-logo-text">Bank Promos</span>
       </div>
-      <div id="promoState" class="state"></div>
-      <div id="promoResults" class="cards"></div>
-    </section>
-
-    <section id="fuelTab" class="tab-panel">
-      <div class="search-box">
-        <input id="fuelQuery" type="text" placeholder="Ej: nafta 95, shell 97, copetrol" />
-        <button id="fuelSearchBtn">Ver mejor ahorro</button>
+      
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-view="today">
+          <span class="nav-icon">📋</span>
+          Hoy
+        </a>
+        <a class="nav-item" data-view="categories">
+          <span class="nav-icon">🏷️</span>
+          Categorías
+        </a>
+        <a class="nav-item" data-view="fuel">
+          <span class="nav-icon">⛽</span>
+          Combustible
+        </a>
+        <a class="nav-item" data-view="search">
+          <span class="nav-icon">🔍</span>
+          Buscar
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <a class="nav-item" href="/admin.html" target="_blank">
+          <span class="nav-icon">⚙️</span>
+          Admin
+        </a>
       </div>
-      <div id="fuelState" class="state"></div>
-      <div id="fuelResults"></div>
-    </section>
-  </main>
+    </aside>
+
+    <main class="main-content">
+      <header class="header">
+        <div>
+          <h1 class="header-title">Promos de hoy</h1>
+          <p class="header-subtitle">Las mejores promociones bancarias disponibles ahora</p>
+        </div>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input id="globalSearch" type="text" placeholder="Buscar supermercado, combustible, ropa..." />
+        </div>
+      </header>
+
+      <section class="summary-cards">
+        <div class="summary-card">
+          <div class="summary-card-label">Promos activas</div>
+          <div class="summary-card-value" id="promosCount">-</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Mejor categoría</div>
+          <div class="summary-card-value accent" id="bestCategory">-</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Mejor combustible</div>
+          <div class="summary-card-value success" id="bestFuel">-</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Última actualización</div>
+          <div class="summary-card-value" id="lastUpdate">-</div>
+        </div>
+      </section>
+
+      <section class="section-header">
+        <h2 class="section-title">Categorías</h2>
+      </section>
+      <div class="category-chips" id="categoryChips">
+        <button class="category-chip" data-category="Combustible">
+          <span class="category-chip-icon">⛽</span> Combustible
+        </button>
+        <button class="category-chip" data-category="Supermercados">
+          <span class="category-chip-icon">🛒</span> Supermercados
+        </button>
+        <button class="category-chip" data-category="Gastronomía">
+          <span class="category-chip-icon">🍔</span> Gastronomía
+        </button>
+        <button class="category-chip" data-category="Tecnología">
+          <span class="category-chip-icon">📱</span> Tecnología
+        </button>
+        <button class="category-chip" data-category="Indumentaria">
+          <span class="category-chip-icon">👕</span> Indumentaria
+        </button>
+        <button class="category-chip" data-category="Salud">
+          <span class="category-chip-icon">💊</span> Salud
+        </button>
+        <button class="category-chip" data-category="Viajes">
+          <span class="category-chip-icon">✈️</span> Viajes
+        </button>
+        <button class="category-chip" data-category="Belleza">
+          <span class="category-chip-icon">💅</span> Belleza
+        </button>
+      </div>
+
+      <section class="section-header">
+        <h2 class="section-title">Promociones destacadas</h2>
+        <span class="section-subtitle" id="promoCountLabel"></span>
+      </section>
+      <div id="promoGrid" class="promo-grid">
+        <div class="loading">
+          <div class="spinner"></div>
+          Cargando promos...
+        </div>
+      </div>
+
+      <section class="fuel-section" id="fuelSection">
+        <div class="section-header">
+          <h2 class="section-title">Mejor combustible</h2>
+        </div>
+        <div id="fuelResults">
+          <div class="loading">
+            <div class="spinner"></div>
+            Cargando combustible...
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script src="./app.js"></script>
 </body>
