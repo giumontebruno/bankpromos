@@ -170,3 +170,27 @@ Or push previous commit:
 git checkout main
 git push origin main~1:main --force
 ```
+
+## Frontend (GitHub Pages)
+
+The frontend is deployed at: https://anomalyco.github.io/bankpromos/
+
+### Files
+
+- `docs/` - Static site files for GitHub Pages deployment
+- `frontend/` - Development copy
+
+### Enable GitHub Pages
+
+1. Go to Settings → Pages
+2. Source: Deploy from branch
+3. Branch: `main` or `master`
+4. Folder: `/docs`
+5. Save
+
+The frontend will be available at:
+`https://<username>.github.io/bankpromos/`
+
+### API Configuration
+
+The frontend uses `app.js` with API_BASE set to production.

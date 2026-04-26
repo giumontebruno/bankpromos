@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Promos - Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-header {
+            background: #1a1a2e;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .admin-header a {
+            color: #e94560;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        .admin-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .admin-form {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .form-row input,
+        .form-row select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .form-full {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        .form-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .admin-list {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .admin-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 80px 60px 80px;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+        .admin-item:nth-child(odd) {
+            background: #f8fafc;
+        }
+        .admin-item-header {
+            background: #1a1a2e;
+            color: white;
+            font-weight: 600;
+        }
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-edit { background: #3b82f6; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+        .edit-form {
+            display: none;
+            background: #fffbeb;
+            padding: 1rem;
+            border: 2px solid #f59e0b;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab-btn.active {
+            border-bottom-color: #e94560;
+            color: #e94560;
+            font-weight: 600;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+
+        .review-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .review-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+        .review-item-header {
+            background: #1a1a2e;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+        }
+        .review-item-header .review-reason {
+            color: #f59e0b;
+            font-style: italic;
+        }
+        .review-item-body {
+            padding: 0.75rem;
+            background: #f8fafc;
+        }
+        .review-text {
+            font-size: 0.8rem;
+            color: #475569;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+        .review-field {
+            font-size: 0.8rem;
+            margin-bottom: 0.35rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .review-field input {
+            flex: 1;
+            max-width: 300px;
+            padding: 0.3rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .review-actions {
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            border-top: 1px solid #e2e8f0;
+            background: white;
+        }
+        .correction-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .correction-form-grid input {
+            width: 100%;
+            padding: 0.4rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .correction-form-grid label {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <header class="admin-header">
+        <h1>Bank Promos - Admin</h1>
+        <a href="index.html">← Volver</a>
+    </header>
+
+    <div class="admin-container">
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('curated')">Curadas</button>
+            <button class="tab-btn" onclick="switchTab('review')">Revisión de Extracciones</button>
+            <button class="tab-btn" onclick="switchTab('corrections')">Correcciones</button>
+        </div>
+
+        <div id="tab-curated" class="tab-panel active">
+            <div id="admin-stats" class="admin-form" style="padding: 1rem; font-size: 0.875rem;">
+                <span class="loading">Cargando...</span>
+            </div>
+
+            <div id="admin-analytics" class="admin-form" style="padding: 1rem; font-size: 0.875rem;">
+                <span class="loading">Cargando analytics...</span>
+            </div>
+
+            <div class="admin-form">
+                <h3>Agregar Promo Curada</h3>
+                <div class="form-row">
+                    <input type="text" id="bank_id" placeholder="bank_id (ej: py_ueno)" />
+                    <input type="text" id="merchant_name" placeholder="merchant_name (ej: Shell)" />
+                </div>
+                <div class="form-row">
+                    <input type="text" id="title" placeholder="title" />
+                    <input type="text" id="category" placeholder="category" />
+                </div>
+                <div class="form-row">
+                    <input type="text" id="discount_percent" placeholder="discount_percent" />
+                    <input type="text" id="benefit_type" placeholder="benefit_type" />
+                </div>
+                <div class="form-row">
+                    <input type="text" id="valid_days" placeholder="valid_days (lunes,martes,...)" />
+                    <input type="text" id="source_url" placeholder="source_url" />
+                </div>
+                <input type="text" class="form-full" id="raw_text" placeholder="raw_text" />
+                <div class="form-actions">
+                    <button class="btn-small" style="background: #22c55e; color: white;" onclick="addPromo()">Agregar</button>
+                </div>
+            </div>
+
+            <div class="admin-list">
+                <div class="admin-item admin-item-header">
+                    <span>ID</span>
+                    <span>Promo</span>
+                    <span>Desc %</span>
+                    <span>Edit</span>
+                    <span>Delete</span>
+                </div>
+                <div id="curated-list"></div>
+            </div>
+        </div>
+
+        <div id="tab-review" class="tab-panel">
+            <div class="review-section">
+                <h3>Items para Revisar</h3>
+                <p style="font-size:0.8rem;color:#64748b;margin-bottom:1rem;">
+                    Promociones detectadas por IA/PDF con merchant faltante o baja confianza.
+                    Completá los campos y guardá la corrección para aplicarla automáticamente en futuras extracciones.
+                </p>
+                <div id="review-items-container" style="display:none;">
+                    <div id="review-list"></div>
+                </div>
+                <div id="review-list"></div>
+            </div>
+        </div>
+
+        <div id="tab-corrections" class="tab-panel">
+            <div class="review-section">
+                <h3>Nueva Corrección Manual</h3>
+                <div class="correction-form-grid">
+                    <div><label>Bank</label><input type="text" id="corr_bank" placeholder="ueno"></div>
+                    <div><label>Tipo</label><input type="text" id="corr_type" placeholder="pdf" value="pdf"></div>
+                    <div><label>Archivo</label><input type="text" id="corr_file" placeholder="guia.pdf"></div>
+                    <div><label>Página</label><input type="text" id="corr_page" placeholder="0"></div>
+                    <div><label>Texto original detectado</label><input type="text" id="corr_orig_text" placeholder="texto del PDF"></div>
+                    <div><label>Merchant original</label><input type="text" id="corr_orig_merchant" placeholder=""></div>
+                    <div><label>Merchant corregido</label><input type="text" id="corr_merchant" placeholder=""></div>
+                    <div><label>Categoría corregida</label><input type="text" id="corr_category" placeholder=""></div>
+                    <div><label>Descuento %</label><input type="text" id="corr_discount" placeholder=""></div>
+                    <div><label>Cap amount</label><input type="text" id="corr_cap" placeholder=""></div>
+                    <div><label>Cuotas</label><input type="text" id="corr_installments" placeholder=""></div>
+                    <div><label>Días válidos</label><input type="text" id="corr_days" placeholder="lunes,martes"></div>
+                    <div><label>Método pago</label><input type="text" id="corr_payment" placeholder="Visa"></div>
+                    <div><label>Condiciones</label><input type="text" id="corr_conditions" placeholder=""></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+                    <input type="checkbox" id="corr_future" checked>
+                    <label for="corr_future" style="font-size:0.8rem;">Aplicar automáticamente en futuras extracciones</label>
+                </div>
+                <button class="btn-small" style="background:#22c55e;color:white;" onclick="addCorrection()">Guardar Corrección</button>
+            </div>
+
+            <div class="review-section">
+                <h3>Correcciones Guardadas</h3>
+                <div id="corrections-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById(`tab-${name}`).classList.add('active');
+        }
+    </script>
+    <script src="admin.js"></script>
+</body>
+</html>

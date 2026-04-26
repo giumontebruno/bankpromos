@@ -77,9 +77,17 @@ INVALID_MERCHANT_PATTERNS = {
         "miercoles", "miércoles", "jueves", "viernes", "sabado", "sábado",
         "domingo", "domingos", "general", "beneficios para vos",
         "beneficios para ti", "para vos", "para ti",
+        "impuestos", "proceda", "contrato único", "el reintegro del",
+        "un descuento del", "reintegro del", "descuento del", "reintegro adicional del",
+        "beneficio del", "40 de reintegro", "reintegro del 100",
+        "presencia del", "plazo de acreditaci",
     },
     "percentage_fragments": {
         "%", "%", "%", "%", "%", "%", "%", "%", "%", "%", "%",
+    },
+    "bank_names": {
+        "ueno", "sudameris", "itau", "continental", "bnf", "banco",
+        "banco de la nacion", "banco nacional", "bancosudameris",
     },
 }
 
@@ -129,23 +137,32 @@ def _is_valid_merchant_candidate(text: Optional[str]) -> bool:
 def _is_valid_merchant_name(text: Optional[str]) -> bool:
     if not text:
         return False
-
+    
     if not _is_valid_merchant_candidate(text):
         return False
-
+    
     cleaned_lower = text.lower().strip()
-
+    
     valid_generic_words = {"stock"}
     for word in INVALID_MERCHANT_PATTERNS["generic_words"]:
         if cleaned_lower == word and cleaned_lower not in valid_generic_words:
             return False
-
+    
+    if cleaned_lower in INVALID_MERCHANT_PATTERNS["bank_names"]:
+        return False
+    
     if re.match(r"^\d+\s*%?$", text):
         return False
-
+    
     if text.strip().isdigit():
         return False
-
+    
+    if any(bank in cleaned_lower for bank in INVALID_MERCHANT_PATTERNS["bank_names"]):
+        return False
+    
+    if cleaned_lower.startswith("reintegro") or cleaned_lower.startswith("descuento"):
+        return False
+    
     return True
 
 
@@ -297,6 +314,108 @@ def _is_weak_promotion(promo: PromotionModel) -> bool:
     return not _is_actionable_promotion(promo)
 
 
+from datetime import date, datetime
+from typing import Optional, List
+
+from bankpromos.core.models import PromotionModel
+
+DAY_MAP = {
+    "lunes": 0,
+    "martes": 1,
+    "miercoles": 2,
+    "miércoles": 2,
+    "jueves": 3,
+    "viernes": 4,
+    "sabado": 5,
+    "sábado": 5,
+    "domingo": 6,
+    "domingos": 6,
+}
+
+CATEGORIES = [
+    "Combustible",
+    "Supermercados",
+    "Gastronomía",
+    "Indumentaria",
+    "Tecnología",
+    "Farmacia",
+    "Salud",
+    "Hogar",
+    "Viajes",
+    "Educación",
+    "Belleza",
+    "Servicios",
+    "Entretenimiento",
+    "General",
+]
+
+
+def get_today_day_name() -> str:
+    days = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
+    return days[datetime.now().weekday()]
+
+
+def _is_active_today(promo: PromotionModel) -> bool:
+    today = datetime.now().date()
+    
+    if promo.valid_from and promo.valid_from > today:
+        return False
+    if promo.valid_to and promo.valid_to < today:
+        return False
+    
+    if promo.valid_days:
+        today_idx = datetime.now().weekday()
+        for day in promo.valid_days:
+            if day.lower() in DAY_MAP and DAY_MAP[day.lower()] == today_idx:
+                return True
+        return False
+    
+    return True
+
+
+def get_best_promotions_today(
+    promos: List[PromotionModel],
+    category: Optional[str] = None,
+    limit: int = 20,
+) -> List[PromotionModel]:
+    filtered = [p for p in promos if _is_active_today(p)]
+    
+    if category:
+        cat_lower = category.lower()
+        filtered = [
+            p for p in filtered
+            if p.category and cat_lower in p.category.lower()
+        ]
+    
+    filtered = [
+        p for p in filtered
+        if p.merchant_name and _is_valid_merchant_name(p.merchant_name)
+        or p.category in CATEGORIES[:6]
+    ]
+    
+    def score(p: PromotionModel) -> float:
+        s = p.result_quality_score or 0.0
+        
+        if p.discount_percent:
+            pct = float(p.discount_percent)
+            if pct >= 30:
+                s += 0.5
+            elif pct >= 20:
+                s += 0.3
+            elif pct >= 10:
+                s += 0.2
+        
+        if p.installment_count and p.installment_count >= 6:
+            s += 0.3
+        
+        if p.merchant_name:
+            s += 0.2
+        
+        return s
+    
+    return sorted(filtered, key=score, reverse=True)[:limit]
+
+
 def normalize_promotion(promo: PromotionModel) -> Optional[PromotionModel]:
     merchant = normalize_merchant_name(promo.merchant_name)
 
@@ -317,6 +436,7 @@ def normalize_promotion(promo: PromotionModel) -> Optional[PromotionModel]:
         promo.benefit_type, promo.title or "", promo.raw_text or ""
     )
 
+    active_today = _is_active_today(promo)
     valid_days = sorted(list(set(promo.valid_days))) if promo.valid_days else []
 
     return PromotionModel(
@@ -336,4 +456,11 @@ def normalize_promotion(promo: PromotionModel) -> Optional[PromotionModel]:
         scraped_at=promo.scraped_at,
         result_quality_score=promo.result_quality_score,
         result_quality_label=promo.result_quality_label,
+        cap_amount=promo.cap_amount,
+        payment_method=promo.payment_method,
+        conditions_text=promo.conditions_text,
+        merchant_group=promo.merchant_group,
+        emblem=promo.emblem,
+        is_curated=promo.is_curated,
+        is_active_today=active_today,
     )

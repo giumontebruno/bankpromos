@@ -24,6 +24,7 @@ from bankpromos.fuel_prices import get_fuel_prices
 from bankpromos.fuel_query import find_best_fuel_promotions
 from bankpromos.query_engine import query_promotions
 from bankpromos.storage import init_db, load_promotions, load_fuel_prices, get_last_promotion_update, get_last_fuel_update
+from bankpromos.ui_output import to_ui_promo, group_promos_by_category, group_promos_by_bank, filter_public_promos
 
 logging.basicConfig(level=logging.INFO if not config.debug else logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -102,11 +103,25 @@ class PromotionResult(BaseModel):
     title: str
     merchant_name: Optional[str] = None
     category: Optional[str] = None
+    is_category_level: bool = False
+    promo_type_display: str = "local"
+    display_name: str = ""
+    display_title: str = ""
+    display_subtitle: Optional[str] = None
     benefit_type: Optional[str] = None
     discount_percent: Optional[float] = None
     installment_count: Optional[int] = None
+    cap_amount: Optional[float] = None
+    cap_display: Optional[str] = None
     valid_days: List[str] = Field(default_factory=list)
-    source_url: str
+    valid_days_display: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_to: Optional[str] = None
+    conditions_short: Optional[str] = None
+    highlight_value: str = ""
+    highlight_type: str = ""
+    emblem: Optional[str] = None
+    source_url: str = ""
     result_quality_score: float = 0.0
     result_quality_label: str = "UNKNOWN"
 
@@ -139,7 +154,7 @@ class FuelQueryResponse(BaseModel):
 
 
 def _serialize_promo(promo) -> Dict[str, Any]:
-    return {
+    promo_dict = promo if isinstance(promo, dict) else {
         "bank_id": promo.bank_id,
         "title": promo.title,
         "merchant_name": promo.merchant_name,
@@ -148,10 +163,18 @@ def _serialize_promo(promo) -> Dict[str, Any]:
         "discount_percent": float(promo.discount_percent) if promo.discount_percent else None,
         "installment_count": promo.installment_count,
         "valid_days": promo.valid_days,
+        "cap_amount": str(promo.cap_amount) if promo.cap_amount else None,
+        "valid_from": promo.valid_from.isoformat() if promo.valid_from else None,
+        "valid_to": promo.valid_to.isoformat() if promo.valid_to else None,
+        "conditions_text": promo.conditions_text,
+        "payment_method": promo.payment_method,
+        "emblem": promo.emblem,
         "source_url": promo.source_url,
+        "raw_text": promo.raw_text,
         "result_quality_score": promo.result_quality_score,
         "result_quality_label": promo.result_quality_label,
     }
+    return to_ui_promo(promo_dict)
 
 
 @app.on_event("startup")
@@ -253,49 +276,172 @@ async def collect_data(force: bool = False):
         )
     except Exception as e:
         logger.error(f"Collect error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error collecting data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Collect error: {str(e)}")
 
 
-@app.post("/collect-debug")
-async def collect_debug(force: bool = False):
+@app.get("/today", response_model=QueryResponse)
+async def today(
+    category: str = Query(default="", description="Filter by category"),
+    limit: int = Query(default=20, le=50),
+    group_by: str = Query(default="", description="Group by: category, bank"),
+):
     try:
-        result = await run_blocking(collect_debug_data, force_refresh=force, db_path=config.db_path)
-        return result
+        from bankpromos.core.normalizer import get_best_promotions_today
+        from bankpromos.ranking_service import filter_noise, rank_promos_for_today
+
+        promos = await run_blocking(get_promotions_data, force_refresh=False, db_path=config.db_path)
+        
+        if category:
+            results = get_best_promotions_today(promos, category=category or None, limit=limit * 3)
+        else:
+            results = get_best_promotions_today(promos, category=None, limit=limit * 3)
+        
+        serialized = [_serialize_promo(p) for p in results]
+        serialized = filter_noise(serialized)
+        serialized = filter_public_promos(serialized)
+        serialized = rank_promos_for_today(serialized, limit=limit)
+
+        try:
+            from bankpromos.analytics_service import track_event
+            track_event("today_view", category=category or None)
+        except Exception:
+            pass
+
+        if group_by == "category":
+            groups = group_promos_by_category(serialized)
+            return {"query": f"today{(':' + category) if category else ''}", "total_results": len(serialized), "results": serialized, "groups": groups}
+        if group_by == "bank":
+            groups = group_promos_by_bank(serialized)
+            return {"query": f"today{(':' + category) if category else ''}", "total_results": len(serialized), "results": serialized, "groups": groups}
+
+        return QueryResponse(
+            query=f"today{(':' + category) if category else ''}",
+            total_results=len(serialized),
+            results=serialized,
+        )
     except Exception as e:
-        logger.error(f"Collect debug error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error collecting debug data: {str(e)}")
+        logger.error(f"Today error: {e}")
+        raise HTTPException(status_code=500, detail=f"Today error: {str(e)}")
 
 
-@app.post("/collect-fuel")
-async def collect_fuel(force: bool = False):
+@app.get("/today/personalized", response_model=QueryResponse)
+async def today_personalized(
+    limit: int = Query(default=20, le=50),
+):
     try:
-        prices = get_fuel_data(force_refresh=force, db_path=config.db_path)
-        return {
-            "count": len(prices),
-            "fuel_updated": datetime.now().isoformat(),
-        }
+        from bankpromos.core.normalizer import get_best_promotions_today
+        from bankpromos.ranking_service import filter_noise, rank_promos_for_today
+        from bankpromos.preferences_service import load_preferences, apply_personalized_boost
+
+        promos = await run_blocking(get_promotions_data, force_refresh=False, db_path=config.db_path)
+        results = get_best_promotions_today(promos, category=None, limit=limit * 3)
+        
+        serialized = [_serialize_promo(p) for p in results]
+        serialized = filter_noise(serialized)
+        serialized = rank_promos_for_today(serialized, limit=limit * 3)
+        
+        prefs = load_preferences()
+        serialized = apply_personalized_boost(serialized, prefs)
+
+        try:
+            from bankpromos.analytics_service import track_event
+            track_event("today_personalized_view")
+        except Exception:
+            pass
+
+        return QueryResponse(
+            query="today:personalized",
+            total_results=len(serialized),
+            results=serialized[:limit],
+        )
     except Exception as e:
-        logger.error(f"Collect fuel error: {e}")
+        logger.error(f"Today personalized error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/preferences")
+async def get_preferences():
+    try:
+        from bankpromos.preferences_service import get_preferences
+        return get_preferences()
+    except Exception as e:
+        logger.error(f"Preferences error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/banks", response_model=List[BankResponse])
-async def get_banks():
-    banks = list_scrapers()
-    bank_names = {
-        "py_sudameris": "Sudameris",
-        "py_ueno": "Ueno",
-        "py_itau": "Itau",
-        "py_continental": "Continental",
-        "py_bnf": "BNF",
-    }
-    return [BankResponse(bank_id=b, name=bank_names.get(b, b)) for b in banks]
+@app.put("/preferences")
+async def update_preferences(prefs: dict):
+    try:
+        from bankpromos.preferences_service import update_preferences
+        updated = update_preferences(
+            favorite_categories=prefs.get("favorite_categories"),
+            hidden_categories=prefs.get("hidden_categories"),
+            favorite_banks=prefs.get("favorite_banks"),
+            prioritize_fuel=prefs.get("prioritize_fuel"),
+            prioritize_supermarkets=prefs.get("prioritize_supermarkets"),
+            prioritize_installments=prefs.get("prioritize_installments"),
+        )
+
+        try:
+            from bankpromos.analytics_service import track_event
+            track_event("preference_save", metadata={"fav_cats": len(prefs.get("favorite_categories", []))})
+        except Exception:
+            pass
+
+        return updated
+    except Exception as e:
+        logger.error(f"Preferences update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/preferences/reset")
+async def reset_preferences():
+    try:
+        from bankpromos.preferences_service import reset_preferences
+        return reset_preferences()
+    except Exception as e:
+        logger.error(f"Preferences reset error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/analytics/summary")
+async def analytics_summary():
+    try:
+        from bankpromos.analytics_service import get_today_summary, get_analytics_summary
+        return {
+            "today": get_today_summary(),
+            "overall": get_analytics_summary(),
+        }
+    except Exception as e:
+        logger.error(f"Analytics summary error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/analytics/top-queries")
+async def analytics_top_queries(limit: int = Query(default=10, le=20)):
+    try:
+        from bankpromos.analytics_service import get_top_queries
+        return {"results": get_top_queries(limit=limit)}
+    except Exception as e:
+        logger.error(f"Analytics top queries error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/analytics/top-categories")
+async def analytics_top_categories(limit: int = Query(default=10, le=20)):
+    try:
+        from bankpromos.analytics_service import get_top_categories
+        return {"results": get_top_categories(limit=limit)}
+    except Exception as e:
+        logger.error(f"Analytics top categories error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/query", response_model=QueryResponse)
 async def query(
     q: str = Query(default="", description="Search query"),
     limit: int = Query(default=10, le=50),
+    group_by: str = Query(default="", description="Group by: category, bank"),
 ):
     try:
         promos = await run_blocking(get_promotions_data, force_refresh=False, db_path=config.db_path)
@@ -307,6 +453,24 @@ async def query(
             results = results[:limit]
 
         serialized = [_serialize_promo(p) for p in results]
+        
+        from bankpromos.ranking_service import filter_noise, rank_promos_for_today
+        serialized = filter_noise(serialized)
+        serialized = filter_public_promos(serialized)
+        serialized = rank_promos_for_today(serialized, limit=limit)
+
+        try:
+            from bankpromos.analytics_service import track_event
+            track_event("search_query", query=q)
+        except Exception:
+            pass
+
+        if group_by == "category":
+            groups = group_promos_by_category(serialized)
+            return {"query": q, "total_results": len(serialized), "results": serialized, "groups": groups}
+        if group_by == "bank":
+            groups = group_promos_by_bank(serialized)
+            return {"query": q, "total_results": len(serialized), "results": serialized, "groups": groups}
 
         return QueryResponse(
             query=q,
@@ -356,6 +520,12 @@ async def fuel_query(
                 )
             )
 
+        try:
+            from bankpromos.analytics_service import track_event
+            track_event("fuel_query", query=q)
+        except Exception:
+            pass
+
         return FuelQueryResponse(
             query=q,
             fuel_type=fuel_type,
@@ -385,6 +555,185 @@ async def get_fuel_prices_api():
         }
     except Exception as e:
         logger.error(f"Fuel prices error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/admin/curated")
+async def list_curated():
+    try:
+        from bankpromos.curated_service import list_curated_promotions, ensure_curated_ids
+        ensure_curated_ids()
+        promos = list_curated_promotions()
+        return {"total": len(promos), "results": promos}
+    except Exception as e:
+        logger.error(f"Admin curated list error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/admin/curated")
+async def create_curated(promo: dict):
+    try:
+        from bankpromos.curated_service import add_curated_promotion
+        item_id = add_curated_promotion(promo)
+        if item_id:
+            return {"id": item_id, "success": True}
+        raise HTTPException(status_code=400, detail="Failed to add curated")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Admin curated create error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/admin/curated/{item_id}")
+async def update_curated(item_id: str, updates: dict):
+    try:
+        from bankpromos.curated_service import update_curated_promotion
+        success = update_curated_promotion(item_id, updates)
+        if success:
+            return {"id": item_id, "success": True}
+        raise HTTPException(status_code=404, detail="Curated promo not found")
+    except Exception as e:
+        logger.error(f"Admin curated update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/admin/curated/{item_id}")
+async def delete_curated(item_id: str):
+    try:
+        from bankpromos.curated_service import delete_curated_promotion
+        success = delete_curated_promotion(item_id)
+        if success:
+            return {"id": item_id, "success": True}
+        raise HTTPException(status_code=404, detail="Curated promo not found")
+    except Exception as e:
+        logger.error(f"Admin curated update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/admin/corrections")
+async def list_corrections(bank_id: str = Query(default=""), apply_to_future: bool = Query(default=None)):
+    try:
+        from bankpromos.corrections_service import list_corrections as _list_corrections
+        result = _list_corrections(
+            bank_id=bank_id or None,
+            apply_to_future=apply_to_future if apply_to_future is not None else None,
+        )
+        return {"total": len(result), "results": result}
+    except Exception as e:
+        logger.error(f"Admin corrections list error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/admin/corrections")
+async def create_correction(correction: dict):
+    try:
+        from bankpromos.corrections_service import add_correction
+        result = add_correction(
+            source_bank=correction.get("source_bank", ""),
+            source_type=correction.get("source_type", "pdf"),
+            source_file=correction.get("source_file", ""),
+            source_page=correction.get("source_page", 0),
+            original_detected_text=correction.get("original_detected_text", ""),
+            original_detected_merchant=correction.get("original_detected_merchant"),
+            corrected_merchant_name=correction.get("corrected_merchant_name"),
+            corrected_category=correction.get("corrected_category"),
+            corrected_discount_percent=correction.get("corrected_discount_percent"),
+            corrected_installment_count=correction.get("corrected_installment_count"),
+            corrected_cap_amount=correction.get("corrected_cap_amount"),
+            corrected_valid_days=correction.get("corrected_valid_days"),
+            corrected_payment_method=correction.get("corrected_payment_method"),
+            corrected_conditions_text=correction.get("corrected_conditions_text"),
+            apply_to_future=correction.get("apply_to_future", True),
+            source_crop_path=correction.get("source_crop_path"),
+        )
+        return {"id": result["id"], "success": True}
+    except Exception as e:
+        logger.error(f"Admin correction create error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/admin/corrections/{correction_id}")
+async def update_correction(correction_id: str, updates: dict):
+    try:
+        from bankpromos.corrections_service import update_correction
+        result = update_correction(
+            id=correction_id,
+            corrected_merchant_name=updates.get("corrected_merchant_name"),
+            corrected_category=updates.get("corrected_category"),
+            corrected_discount_percent=updates.get("corrected_discount_percent"),
+            corrected_installment_count=updates.get("corrected_installment_count"),
+            corrected_cap_amount=updates.get("corrected_cap_amount"),
+            corrected_valid_days=updates.get("corrected_valid_days"),
+            corrected_payment_method=updates.get("corrected_payment_method"),
+            corrected_conditions_text=updates.get("corrected_conditions_text"),
+            apply_to_future=updates.get("apply_to_future"),
+        )
+        if result:
+            return {"id": correction_id, "success": True}
+        raise HTTPException(status_code=404, detail="Correction not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin correction update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/admin/corrections/{correction_id}")
+async def delete_correction(correction_id: str):
+    try:
+        from bankpromos.corrections_service import delete_correction
+        success = delete_correction(correction_id)
+        if success:
+            return {"id": correction_id, "success": True}
+        raise HTTPException(status_code=404, detail="Correction not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin correction delete error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/admin/review-items")
+async def get_review_items():
+    try:
+        from bankpromos.corrections_service import load_review_items
+        items = load_review_items()
+        return {"total": len(items), "results": items}
+    except Exception as e:
+        logger.error(f"Admin review items error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/summary")
+async def get_summary():
+    try:
+        from bankpromos.summary_service import generate_summary, load_summary
+        summary = generate_summary("data/bankpromos.db")
+        return summary
+    except Exception as e:
+        logger.error(f"Summary error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/changes")
+async def get_changes():
+    try:
+        from bankpromos.summary_service import load_summary
+        prev = load_summary()
+        if not prev:
+            return {"message": "No previous summary available"}
+        from bankpromos.summary_service import generate_summary
+        current = generate_summary("data/bankpromos.db")
+        prev_total = prev.get("total_promos", 0)
+        return {
+            "new_promos": max(0, current.total_promos - prev_total),
+            "removed_promos": max(0, prev_total - current.total_promos),
+            "previous_total": prev_total,
+            "current_total": current.total_promos,
+        }
+    except Exception as e:
+        logger.error(f"Changes error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

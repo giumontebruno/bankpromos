@@ -54,6 +54,7 @@ def get_promotions_data(
     force_refresh: bool = False,
     db_path: str = None,
     max_cache_age: int = 12,
+    include_pdfs: bool = True,
 ) -> List[PromotionModel]:
     if db_path is None:
         db_path = config.db_path
@@ -79,17 +80,31 @@ def get_promotions_data(
             promos, error = run_scraper(bank_id)
             if not error and promos:
                 processed_bank = _process_promotions(promos, bank_id)
+                for p in processed_bank:
+                    p.raw_data["source_type"] = "scraped"
                 all_promos.extend(processed_bank)
         except Exception:
             continue
+
+    if include_pdfs:
+        try:
+            from bankpromos.run_all import run_pdf_extraction
+
+            pdf_promos = run_pdf_extraction("data/pdfs")
+            for p in pdf_promos:
+                p.raw_data["source_type"] = "pdf_local"
+            all_promos.extend(pdf_promos)
+        except Exception:
+            pass
 
     if not all_promos:
         cached = load_promotions(db_path)
         return cached
 
-    save_promotions(all_promos, db_path)
+    processed = _process_promotions(all_promos, bank_id=None)
+    save_promotions(processed, db_path)
 
-    return all_promos
+    return processed
 
 
 def get_fuel_data(

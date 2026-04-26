@@ -1,0 +1,6 @@
+{"event_type": "test", "timestamp": "2026-04-23T18:43:16.246170", "query": null, "category": null, "bank": null, "metadata": {}}
+{"event_type": "today_view", "timestamp": "2026-04-25T19:49:58.065121", "query": null, "category": null, "bank": null, "metadata": {}}
+{"event_type": "today_view", "timestamp": "2026-04-25T19:50:33.655300", "query": null, "category": null, "bank": null, "metadata": {}}
+{"event_type": "search_query", "timestamp": "2026-04-25T19:50:33.670273", "query": "shell", "category": null, "bank": null, "metadata": {}}
+{"event_type": "today_view", "timestamp": "2026-04-25T19:50:41.152356", "query": null, "category": null, "bank": null, "metadata": {}}
+{"event_type": "today_view", "timestamp": "2026-04-25T19:50:41.172420", "query": null, "category": null, "bank": null, "metadata": {}}

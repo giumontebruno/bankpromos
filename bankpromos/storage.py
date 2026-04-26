@@ -41,6 +41,7 @@ def init_db(db_path: str = "bankpromos.db") -> None:
                 benefit_type TEXT,
                 discount_percent TEXT,
                 installment_count INTEGER,
+                cap_amount TEXT,
                 valid_days TEXT,
                 valid_from TEXT,
                 valid_to TEXT,
@@ -52,7 +53,10 @@ def init_db(db_path: str = "bankpromos.db") -> None:
                 result_quality_label TEXT,
                 merchant_normalized TEXT,
                 category_normalized TEXT,
-                inserted_at TEXT NOT NULL
+                inserted_at TEXT NOT NULL,
+                payment_method TEXT,
+                conditions_text TEXT,
+                emblem TEXT
             )
         """)
 
@@ -99,6 +103,7 @@ def _promo_to_row(promo: PromotionModel) -> Dict[str, Any]:
         "benefit_type": promo.benefit_type,
         "discount_percent": str(promo.discount_percent) if promo.discount_percent else None,
         "installment_count": promo.installment_count,
+        "cap_amount": str(promo.cap_amount) if promo.cap_amount else None,
         "valid_days": json.dumps(promo.valid_days),
         "valid_from": promo.valid_from.isoformat() if promo.valid_from else None,
         "valid_to": promo.valid_to.isoformat() if promo.valid_to else None,
@@ -113,24 +118,45 @@ def _promo_to_row(promo: PromotionModel) -> Dict[str, Any]:
     }
 
 
+def _safe_row(row: sqlite3.Row, key: str, default=None):
+    cols = row.keys()
+    return row[key] if key in cols else default
+
+
 def _row_to_promo(row: sqlite3.Row) -> PromotionModel:
+    cap_val = _safe_row(row, "cap_amount")
+    cap = None
+    if cap_val:
+        try:
+            cap = Decimal(str(cap_val))
+        except Exception:
+            pass
+    
+    discount_val = _safe_row(row, "discount_percent")
+    valid_days_val = _safe_row(row, "valid_days")
+    raw_data_val = _safe_row(row, "raw_data")
+    scraped_val = _safe_row(row, "scraped_at")
+    rqs_val = _safe_row(row, "result_quality_score")
+    rql_val = _safe_row(row, "result_quality_label")
+    
     return PromotionModel(
         bank_id=row["bank_id"],
         title=row["title"],
         merchant_name=row["merchant_name"],
         category=row["category"],
         benefit_type=row["benefit_type"],
-        discount_percent=Decimal(row["discount_percent"]) if row["discount_percent"] else None,
+        discount_percent=Decimal(discount_val) if discount_val else None,
         installment_count=row["installment_count"],
-        valid_days=json.loads(row["valid_days"]) if row["valid_days"] else [],
+        cap_amount=cap,
+        valid_days=json.loads(valid_days_val) if valid_days_val else [],
         valid_from=row["valid_from"],
         valid_to=row["valid_to"],
         source_url=row["source_url"],
         raw_text=row["raw_text"],
-        raw_data=json.loads(row["raw_data"]) if row["raw_data"] else {},
-        scraped_at=datetime.fromisoformat(row["scraped_at"]) if row["scraped_at"] else None,
-        result_quality_score=row["result_quality_score"] or 0.0,
-        result_quality_label=row["result_quality_label"] or "UNKNOWN",
+        raw_data=json.loads(raw_data_val) if raw_data_val else {},
+        scraped_at=datetime.fromisoformat(scraped_val) if scraped_val else None,
+        result_quality_score=rqs_val or 0.0,
+        result_quality_label=rql_val or "UNKNOWN",
         merchant_normalized=row["merchant_normalized"],
         category_normalized=row["category_normalized"],
     )
@@ -174,13 +200,13 @@ def save_promotions(promos: List[PromotionModel], db_path: str = "bankpromos.db"
             cursor.execute("""
                 INSERT INTO promotions (
                     bank_id, title, merchant_name, category, benefit_type,
-                    discount_percent, installment_count, valid_days, valid_from, valid_to,
+                    discount_percent, installment_count, cap_amount, valid_days, valid_from, valid_to,
                     source_url, raw_text, raw_data, scraped_at,
                     result_quality_score, result_quality_label,
                     merchant_normalized, category_normalized, inserted_at
                 ) VALUES (
                     :bank_id, :title, :merchant_name, :category, :benefit_type,
-                    :discount_percent, :installment_count, :valid_days, :valid_from, :valid_to,
+                    :discount_percent, :installment_count, :cap_amount, :valid_days, :valid_from, :valid_to,
                     :source_url, :raw_text, :raw_data, :scraped_at,
                     :result_quality_score, :result_quality_label,
                     :merchant_normalized, :category_normalized, :inserted_at

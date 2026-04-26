@@ -23,6 +23,18 @@ class PromotionModel(BaseModel):
     result_quality_label: str = Field(default="UNKNOWN")
     merchant_normalized: Optional[str] = None
     category_normalized: Optional[str] = None
+    
+    cap_amount: Optional[Decimal] = None
+    payment_method: Optional[str] = None
+    conditions_text: Optional[str] = None
+    merchant_group: Optional[str] = None
+    emblem: Optional[str] = None
+    is_curated: bool = Field(default=False)
+    is_active_today: bool = Field(default=True)
+
+    needs_review: bool = Field(default=False)
+    review_reason: Optional[str] = None
+    pattern_key: Optional[str] = None
 
     class Config:
         json_encoders = {

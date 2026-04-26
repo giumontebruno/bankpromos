@@ -294,18 +294,44 @@ class BasePublicScraper(ABC):
                 "title": self._diagnostics.title,
                 "cards_found": self._card_match_count,
                 "pdf_links_found": self._pdf_link_count,
-                "xhr_urls_found": len(self._captured_urls),
-                "relevant_urls_found": len(self._relevant_urls),
                 "promos_from_dom": self._diagnostics.promos_from_dom,
                 "promos_from_pdf": self._diagnostics.promos_from_pdf,
                 "promos_from_api": self._diagnostics.promos_from_api,
-                "final_saved": self._diagnostics.extracted_after_dedupe,
-                "relevant_urls": self._relevant_urls[:20],
+                "rejected_generic_count": self._diagnostics.rejected_generic_count,
+                "quality_label": self._diagnostics.quality_label,
             }
-            (debug_dir / "source_summary.json").write_text(
-                json.dumps(summary, indent=2),
-                encoding="utf-8"
-            )
+            (debug_dir / "source_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        except Exception as e:
+            logger.warning(f"Failed to save summary: {e}")
+
+    def _save_debug_file(self, filename: str, content: str):
+        if not self.debug_mode:
+            return
+        debug_dir = self._get_debug_dir()
+        try:
+            (debug_dir / filename).write_text(content, encoding="utf-8")
+        except Exception as e:
+            logger.warning(f"Failed to save {filename}: {e}")
+
+    def _save_debug_summary(self):
+        if not self.debug_mode:
+            return
+        debug_dir = self._get_debug_dir()
+        try:
+            summary = {
+                "bank_id": self._get_bank_id(),
+                "source_used": self._diagnostics.source_used,
+                "url": self._diagnostics.url,
+                "title": self._diagnostics.title,
+                "cards_found": self._card_match_count,
+                "pdf_links_found": self._pdf_link_count,
+                "promos_from_dom": self._diagnostics.promos_from_dom,
+                "promos_from_pdf": self._diagnostics.promos_from_pdf,
+                "promos_from_api": self._diagnostics.promos_from_api,
+                "rejected_generic_count": self._diagnostics.rejected_generic_count,
+                "quality_label": self._diagnostics.quality_label,
+            }
+            (debug_dir / "source_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
         except Exception as e:
             logger.warning(f"Failed to save summary: {e}")
 

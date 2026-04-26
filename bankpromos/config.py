@@ -26,13 +26,19 @@ def get_env_bool(key: str, default: bool = False) -> bool:
 
 class Config:
     DEFAULT_DB_PATH = "/app/data/bankpromos.db"
+    LOCAL_DB_PATH = "data/bankpromos.db"
 
     def __init__(self):
         self.port: int = get_env_int("PORT", 8000)
         self.host: str = "0.0.0.0"
 
-        db_path = os.environ.get("BANKPROMOS_DB_PATH", self.DEFAULT_DB_PATH)
-        self.db_path = db_path
+        env_db = os.environ.get("BANKPROMOS_DB_PATH")
+        if env_db:
+            self.db_path = env_db
+        elif os.path.exists(self.LOCAL_DB_PATH):
+            self.db_path = self.LOCAL_DB_PATH
+        else:
+            self.db_path = self.DEFAULT_DB_PATH
 
         self.cache_hours: int = get_env_int("BANKPROMOS_CACHE_HOURS", 12)
         self.debug: bool = get_env_bool("BANKPROMOS_DEBUG", False)

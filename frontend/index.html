@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Promos PY</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <h1>Bank Promos PY</h1>
+        <p class="subtitle">Consultá promociones bancarias y el mejor ahorro en combustible</p>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab active" data-tab="promos">Promociones</button>
+        <button class="tab" data-tab="fuel">Combustible</button>
+    </nav>
+
+    <main class="container">
+        <section id="promos-section" class="tab-content active">
+            <div class="search-box">
+                <input type="text" id="promo-query" placeholder="Ej: combustible, supermercado, tecnolog\u00eda" />
+                <button id="promo-search-btn">Buscar promociones</button>
+            </div>
+            <div id="promo-results" class="results"></div>
+        </section>
+
+        <section id="fuel-section" class="tab-content">
+            <div class="search-box">
+                <input type="text" id="fuel-query" placeholder="Ej: nafta 95, shell 97, copetrol" />
+                <button id="fuel-search-btn">Ver mejor ahorro</button>
+            </div>
+            <div id="fuel-results" class="results"></div>
+        </section>
+    </main>
+
+    <footer class="status-bar">
+        <div id="status-info" class="status-info">
+            <span class="loading">Cargando estado...</span>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

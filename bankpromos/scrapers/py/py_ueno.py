@@ -1,18 +1,12 @@
 import json
 import logging
 import re
-import tempfile
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, List, Optional, Set
 from urllib.parse import urljoin
 
 import requests
-
-try:
-    import pdfplumber
-except ImportError:
-    pdfplumber = None
 
 from bankpromos.core.models import PromotionModel
 from bankpromos.core.normalizer import _is_valid_merchant_name, _contains_fuel_signal
@@ -130,40 +124,38 @@ class UenoPromotionsScraper(BasePublicScraper):
         pdf_promos = 0
 
         pdf_links = self._extract_pdf_links()
-        api_promos = self._try_api_extraction()
-        if api_promos:
-            promotions.extend(api_promos)
-            self._diagnostics.promos_from_api = len(api_promos)
-            self._diagnostics.source_used = "api"
-
+        
         seen_urls: Set[str] = set()
         for pdf_url in pdf_links:
             if pdf_url and pdf_url not in seen_urls:
                 seen_urls.add(pdf_url)
-                pdf_results = self._parse_pdf_promotions(pdf_url)
-                if pdf_results:
-                    promotions.extend(pdf_results)
-                    pdf_promos += len(pdf_results)
+                try:
+                    from bankpromos.pdf_parser import parse_promotions_from_pdf, extract_pdf_text
+                    text = extract_pdf_text(pdf_url)
+                    if text:
+                        pdf_results = parse_promotions_from_pdf(text, self._get_bank_id(), pdf_url)
+                        if pdf_results:
+                            promotions.extend(pdf_results)
+                            pdf_promos += len(pdf_results)
+                            self._diagnostics.promos_from_pdf = pdf_promos
+                            self._diagnostics.source_used = "pdf"
+                            if self.debug_mode:
+                                self._save_debug_file("pdf_text.txt", text[:5000])
+                except Exception as e:
+                    logger.warning(f"[PDF] Parse failed: {e}")
 
-        if pdf_promos > 0:
-            self._diagnostics.promos_from_pdf = pdf_promos
-            if not self._diagnostics.source_used or self._diagnostics.source_used == "unknown":
-                self._diagnostics.source_used = "pdf"
-
-        html_promos = self._extract_from_page()
-        if html_promos:
-            promotions.extend(html_promos)
-            dom_promos = len(html_promos)
-            self._diagnostics.promos_from_dom = dom_promos
-            if not self._diagnostics.source_used or self._diagnostics.source_used == "unknown":
-                self._diagnostics.source_used = "dom"
+        if pdf_promos == 0:
+            html_promos = self._extract_from_page()
+            if html_promos:
+                promotions.extend(html_promos)
+                dom_promos = len(html_promos)
+                self._diagnostics.promos_from_dom = dom_promos
+                if not self._diagnostics.source_used or self._diagnostics.source_used == "unknown":
+                    self._diagnostics.source_used = "dom"
 
         if not promotions:
             self._record_fallback()
             self._diagnostics.source_used = "fallback"
-            fallback_promos = self._extract_from_fallback()
-            promotions.extend(fallback_promos)
-            self._diagnostics.promos_from_dom = len(fallback_promos)
 
         before_dedupe = len(promotions)
         deduped = self._dedupe_promotions(promotions)
@@ -349,22 +341,17 @@ class UenoPromotionsScraper(BasePublicScraper):
         return None
 
     def _parse_pdf_promotions(self, pdf_url: str) -> List[PromotionModel]:
-        if not pdfplumber:
-            return []
-
         try:
-            response = requests.get(pdf_url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
-            response.raise_for_status()
-            if len(response.content) < 1000:
+            from bankpromos.pdf_parser import extract_pdf_text, parse_promotions_from_pdf
+            
+            text = extract_pdf_text(pdf_url)
+            if not text:
                 return []
-        except Exception:
+            
+            return parse_promotions_from_pdf(text, self._get_bank_id(), pdf_url)
+        except Exception as e:
+            logger.warning(f"PDF parse failed: {e}")
             return []
-
-        pdf_path = ""
-        try:
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-                f.write(response.content)
-                pdf_path = f.name
 
             promotions: List[PromotionModel] = []
 

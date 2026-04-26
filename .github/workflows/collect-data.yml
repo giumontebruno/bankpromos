@@ -38,6 +38,21 @@ jobs:
         env:
           BANKPROMOS_DISABLE_LIVE_SCRAPING: false
 
+      - name: Generate summary
+        run: |
+          python -c "
+          from bankpromos.summary_service import run_collection_with_summary
+          s = run_collection_with_summary()
+          print(f'Summary: {s.total_promos} promos, {s.active_today_count} active today')
+          "
+
+      - name: Upload summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-summary
+          path: data/collection_summary.json
+          retention-days: 30
+
       - name: Configure git
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"

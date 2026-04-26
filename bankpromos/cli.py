@@ -1,5 +1,6 @@
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from bankpromos import list_scrapers
@@ -18,6 +19,7 @@ from bankpromos.run_all import run_scraper
 
 SUPPORTED_BANKS = ["py_sudameris", "py_ueno", "py_itau", "py_continental", "py_bnf"]
 DEFAULT_DB = "bankpromos.db"
+LOCAL_DEFAULT_DB = "data/bankpromos.db"
 
 
 def main():
@@ -32,6 +34,12 @@ def main():
     collect_parser.add_argument("--force", action="store_true", help="Force refresh cache")
     collect_parser.add_argument("--fuel", action="store_true", help="Collect fuel prices only")
     collect_parser.add_argument("--db", default=DEFAULT_DB, help="Database path")
+    collect_parser.add_argument(
+        "--parser-mode",
+        choices=["classic", "ai", "auto"],
+        default="classic",
+        help="PDF parser mode (default: classic)",
+    )
 
     run_parser = subparsers.add_parser("run", help="Run scraper(s) without saving to cache")
     run_parser.add_argument("--bank", help="Bank ID to scrape")
@@ -60,6 +68,13 @@ def main():
     cache_parser = subparsers.add_parser("cache", help="Show cache status")
     cache_parser.add_argument("--db", default=DEFAULT_DB, help="Database path")
 
+    pdf_parser = subparsers.add_parser("pdf-debug", help="Debug PDF extraction")
+    pdf_parser.add_argument("file", nargs="?", help="Specific PDF file in data/pdfs/")
+
+    qa_parser = subparsers.add_parser("qa", help="QA database")
+    qa_parser.add_argument("--export", action="store_true", help="Export QA report CSV")
+    qa_parser.add_argument("--today", action="store_true", help="Show today's top promos")
+
     args = parser.parse_args()
 
     if args.command == "list":
@@ -71,7 +86,10 @@ def main():
 
     if args.command == "collect":
         force = args.force
-        db_path = args.db if args.db != DEFAULT_DB else config.db_path
+        db_path = args.db if args.db != DEFAULT_DB else LOCAL_DEFAULT_DB
+        parser_mode = getattr(args, "parser_mode", "classic")
+        
+        print(f"[DB] Using: {db_path}")
 
         if args.fuel:
             print("Collecting fuel prices...")
@@ -79,11 +97,54 @@ def main():
             print(f"Collected {len(prices)} fuel prices")
             return
 
+        if args.all:
+            from bankpromos.pipeline import run_all_collections, print_results
+            from bankpromos.storage import load_promotions, load_fuel_prices
+            import os
+            print(f"Running all collectors (parser: {parser_mode})...")
+            results = run_all_collections(db_path=db_path, debug=False, parser_mode=parser_mode, clear_first=force)
+            print_results(results)
+            
+            if os.path.exists(db_path):
+                total_promos = len(load_promotions(db_path))
+                total_fuel = len(load_fuel_prices(db_path))
+                print(f"[DB] Total promotions in {db_path}: {total_promos}")
+                print(f"[DB] Total fuel prices in {db_path}: {total_fuel}")
+            return
+
+        if args.bank:
+            from bankpromos.pipeline import run_bank_collection
+            from bankpromos.pipeline.runner import CollectionResult
+
+            result: CollectionResult = run_bank_collection(
+                args.bank,
+                db_path=db_path,
+                debug=True,
+                parser_mode=parser_mode,
+            )
+            print(f"  Parser mode: {result.parser_mode}")
+            if result.parser_used != result.parser_mode:
+                print(f"  Parser used: {result.parser_used}")
+            print(f"  Sources: {result.sources_found}")
+            print(f"  Collected: {result.promos_collected}")
+            print(f"  Normalized: {result.promos_normalized}")
+            print(f"  Deduped: {result.promos_deduped}")
+            print(f"  Saved: {result.promos_saved}")
+            if result.errors:
+                for e in result.errors:
+                    print(f"  Error: {e}")
+            return
+
         result = collect_all_data(force_refresh=force, db_path=db_path)
         print(f"Collected {result['promotions_count']} promotions")
         print(f"Collected {result['fuel_prices_count']} fuel prices")
         print(f"Promotions updated: {result['promos_updated']}")
         print(f"Fuel updated: {result['fuel_updated']}")
+        
+        if "source_counts" in result:
+            print("Source breakdown:")
+            for src, count in result["source_counts"].items():
+                print(f"  {src}: {count}")
         return
 
     if args.command == "cache":
@@ -94,6 +155,21 @@ def main():
         print(f"  Promotions age (hours): {status['promotions_age_hours']:.1f}")
         print(f"  Fuel age (hours): {status['fuel_age_hours']:.1f}")
         print(f"  Last update: {status['promotions_updated_at']}")
+        return
+
+    if args.command == "pdf-debug":
+        from bankpromos.pdf_debug import main as pdf_main
+        pdf_main()
+        return
+
+    if args.command == "qa":
+        import bankpromos.qa as qa_module
+        from argparse import Namespace
+        qa_args = Namespace(
+            export=getattr(args, 'export', False),
+            today=getattr(args, 'today', False),
+        )
+        qa_module.main(qa_args)
         return
 
     if args.command == "run":

@@ -69,6 +69,18 @@ def _cuotas_match(a: Optional[int], b: Optional[int]) -> bool:
     return a == b
 
 
+def _cap_match(a, b):
+    if a is None or b is None:
+        return True
+    return abs(float(a) - float(b)) < 0.01
+
+
+def _dates_match(a_from, a_to, b_from, b_to):
+    if a_from is None or b_from is None:
+        return True
+    return a_from == b_from and a_to == b_to
+
+
 def _is_duplicate(p1: PromotionModel, p2: PromotionModel) -> bool:
     if p1.bank_id != p2.bank_id:
         return False
@@ -86,6 +98,12 @@ def _is_duplicate(p1: PromotionModel, p2: PromotionModel) -> bool:
         return False
 
     if not _cuotas_match(p1.installment_count, p2.installment_count):
+        return False
+
+    if not _cap_match(p1.cap_amount, p2.cap_amount):
+        return False
+
+    if not _dates_match(p1.valid_from, p1.valid_to, p2.valid_from, p2.valid_to):
         return False
 
     return True
@@ -130,6 +148,9 @@ def dedupe_promotions(promos: List[PromotionModel]) -> List[PromotionModel]:
             promo.benefit_type.lower() if promo.benefit_type else "",
             float(promo.discount_percent) if promo.discount_percent else None,
             promo.installment_count,
+            float(promo.cap_amount) if promo.cap_amount else None,
+            promo.valid_from,
+            promo.valid_to,
         )
 
         is_dup = False
