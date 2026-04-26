@@ -297,6 +297,7 @@ async def today(
             results = get_best_promotions_today(promos, category=None, limit=limit * 3)
         
         serialized = [_serialize_promo(p) for p in results]
+        serialized = [s for s in serialized if s is not None]
         serialized = filter_noise(serialized)
         serialized = filter_public_promos(serialized)
         serialized = rank_promos_for_today(serialized, limit=limit)
@@ -453,6 +454,7 @@ async def query(
             results = results[:limit]
 
         serialized = [_serialize_promo(p) for p in results]
+        serialized = [s for s in serialized if s is not None]
         
         from bankpromos.ranking_service import filter_noise, rank_promos_for_today
         serialized = filter_noise(serialized)

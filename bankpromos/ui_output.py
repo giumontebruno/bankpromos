@@ -1,31 +1,130 @@
+import re
 from datetime import date
 from typing import Any, Dict, List, Optional
 
 
 CATEGORY_COMERCIOS = {
     "Supermercados": "Supermercados adheridos",
-    "Gastronom\u00eda": "Gastronom\u00eda adherida",
+    "Gastronomía": "Gastronomía adherida",
     "Combustible": "Estaciones adheridas",
     "Indumentaria": "Tiendas adheridas",
-    "Tecnolog\u00eda": "Tech adheridos",
+    "Tecnología": "Tech adheridos",
     "Salud": "Farmacias adheridas",
     "Belleza": "Centros adheridos",
     "Viajes": "Viajes adheridos",
     "Hogar": "Hogar adherido",
-    "Educaci\u00f3n": "Educaci\u00f3n adherida",
+    "Educación": "Educación adherida",
     "Entretenimiento": "Entretenimiento adherido",
     "Servicios": "Servicios adheridos",
 }
 
 FUEL_EMBLEMS = {"shell", "copetrol", "petropar", "petrobras", "enex", "fp"}
 
-CATEGORY_LEVEL_MERCHANTS = {
+BANK_NAMES = {"ueno", "itau", "sudameris", "continental", "bnf", "banco"}
+
+FAKE_MERCHANT_PATTERNS = {
     "reintegro del", "un descuento del", "beneficio del",
     "los meses con", "disfrut", "reintegro adicional del",
     "comercios adheridos", "comercios participantes",
+    "el reintegro del", "un reintegro del",
+    "descuento del", "reintegro adicional del",
+    "desde", "vigentes", "al respecto", "reclamo",
+    "cinutoerteasse",
 }
 
-BANK_NAMES = {"ueno", "itau", "sudameris", "continental", "bnf", "banco"}
+SPECIFIC_MERCHANTS = {"shell", "copetrol", "petropar", "petrobras", "enex", "fp",
+                        "stock", "superseis", "carrefour", "walmart", "biggie", "supermax"}
+
+LEGAL_BANKING_PATTERNS = {
+    "sobregiros", "cheques girados", "contrato único", "impuestos",
+    "informes en caso de atraso", "presencia del 100% de las acciones",
+    "los meses con pagos", "plazo de acreditación del reintegro",
+    "plazo de acreditaci", "cheques", "girados",
+    "sobres", "avales", "garantías", "garantias",
+    "seguros", "accidentes", "personas", "vida",
+    "sueldo", "liquidación", "liquidacion", "nómina", "nomina",
+    "crédito", "credito", "préstamo", "prestamo",
+    "cobranza", "cobro", "reclamaciones", "reclamo",
+    "servicio al cliente", "atención al cliente",
+    "legal", "términos y condiciones", "tyc",
+    "reglamento", "bases y condiciones",
+}
+
+GOOD_CATEGORIES = {
+    "Combustible", "Supermercados", "Gastronomía",
+    "Indumentaria", "Tecnología", "Salud",
+    "Belleza", "Viajes", "Hogar", "Educación",
+    "Entretenimiento", "Servicios",
+}
+
+
+def _is_fake_merchant(merchant: Optional[str]) -> bool:
+    if not merchant or not merchant.strip():
+        return True
+    
+    m = merchant.lower().strip()
+    
+    for kw in SPECIFIC_MERCHANTS:
+        if kw in m:
+            return False
+    
+    if m in BANK_NAMES:
+        return True
+    
+    if re.match(r"^\d+\s+de\s+(reintegro|descuento)$", m):
+        return True
+    
+    for pattern in FAKE_MERCHANT_PATTERNS:
+        if pattern in m:
+            return True
+    
+    if m.startswith("reintegro del") or m.startswith("descuento del"):
+        return True
+    
+    if "cinutoerteasse" in m:
+        return True
+    
+    if len(m) < 3:
+        return True
+        
+    return False
+
+
+def _has_legal_banking_text(text: str) -> bool:
+    if not text:
+        return False
+    text_lower = text.lower()
+    for pattern in LEGAL_BANKING_PATTERNS:
+        if pattern in text_lower:
+            return True
+    return False
+
+
+def _is_strong_category_promo(
+    category: Optional[str],
+    discount: Optional[float],
+    installments: Optional[int],
+    valid_from: Optional[date],
+    valid_to: Optional[date],
+    cap: Optional[float],
+    conditions: Optional[str],
+) -> bool:
+    if category not in GOOD_CATEGORIES:
+        return False
+    
+    if discount and discount > 0:
+        return True
+    if installments and installments > 0:
+        return True
+    
+    if valid_from and valid_to:
+        return True
+    if cap and cap > 0:
+        return True
+    if conditions and len(conditions) > 3:
+        return True
+        
+    return False
 
 
 def _is_category_level_promo(merchant: Optional[str], category: Optional[str], title: str = "") -> bool:
@@ -36,15 +135,15 @@ def _is_category_level_promo(merchant: Optional[str], category: Optional[str], t
     if m in BANK_NAMES:
         return True
 
-    if m in CATEGORY_LEVEL_MERCHANTS:
+    if _is_fake_merchant(merchant):
         return True
+
+    for pattern in FAKE_MERCHANT_PATTERNS:
+        if pattern in m:
+            return True
 
     if m.startswith("reintegro del") or m.startswith("descuento del"):
         return True
-
-    for pattern in CATEGORY_LEVEL_MERCHANTS:
-        if pattern in m:
-            return True
 
     title_lower = (title or "").lower()
     if "comercios adheridos" in title_lower or "comercios participantes" in title_lower:
@@ -69,7 +168,7 @@ def _get_promo_type(merchant: Optional[str], category: Optional[str], title: str
 
 
 def _get_display_name(merchant: Optional[str], category: Optional[str], title: str = "") -> str:
-    if merchant and merchant.strip():
+    if merchant and merchant.strip() and not _is_fake_merchant(merchant):
         return merchant.strip()
 
     if category and category in CATEGORY_COMERCIOS:
@@ -91,6 +190,10 @@ def _get_display_title(
 ) -> str:
     if title and len(title.strip()) > 3:
         clean = title.strip()
+        if _is_fake_merchant(clean):
+            clean = ""
+        if not clean:
+            clean = title.strip()
         generic_prefixes = (
             "beneficio del ", "reintegro del ", "descuento del ",
             "los meses con ", "un descuento del ",
@@ -98,7 +201,7 @@ def _get_display_title(
         for prefix in generic_prefixes:
             if clean.lower().startswith(prefix):
                 clean = clean[len(prefix):]
-        if len(clean) <= 80:
+        if len(clean) <= 80 and not _is_fake_merchant(clean):
             return clean
 
     parts = []
@@ -116,13 +219,13 @@ def _get_display_title(
     if parts:
         return parts[0]
 
-    if merchant and merchant.strip():
+    if merchant and merchant.strip() and not _is_fake_merchant(merchant):
         return f"Promo en {merchant}"
 
     if category:
         return f"Promo en {category}"
 
-    return "Promoci\u00f3n"
+    return "Promoción"
 
 
 def _get_display_subtitle(
@@ -135,16 +238,16 @@ def _get_display_subtitle(
 
     if valid_days and len(valid_days) > 0:
         day_map = {
-            "lunes": "Lun", "martes": "Mar", "miercoles": "Mi\u00e9",
-            "mi\u00e9rcoles": "Mi\u00e9", "jueves": "Jue", "viernes": "Vie",
-            "sabado": "S\u00e1b", "s\u00e1bado": "S\u00e1b",
+            "lunes": "Lun", "martes": "Mar", "miercoles": "Miér",
+            "miércoles": "Miér", "jueves": "Jue", "viernes": "Vie",
+            "sabado": "Sáb", "sábado": "Sáb",
             "domingo": "Dom", "domingos": "Dom",
         }
         abbrev = [day_map.get(d.lower(), d[:3].title()) for d in valid_days]
         if len(abbrev) <= 3:
             parts.append(", ".join(abbrev))
         elif len(abbrev) == 7:
-            parts.append("Todos los d\u00edas")
+            parts.append("Todos los días")
         else:
             parts.append(", ".join(abbrev[:3]) + "...")
 
@@ -195,17 +298,43 @@ def _format_days_display(valid_days: List[str]) -> Optional[str]:
     if not valid_days:
         return None
     day_map = {
-        "lunes": "Lun", "martes": "Mar", "miercoles": "Mi\u00e9",
-        "mi\u00e9rcoles": "Mi\u00e9", "jueves": "Jue", "viernes": "Vie",
-        "sabado": "S\u00e1b", "s\u00e1bado": "S\u00e1b",
+        "lunes": "Lun", "martes": "Mar", "miercoles": "Miér",
+        "miércoles": "Miér", "jueves": "Jue", "viernes": "Vie",
+        "sabado": "Sáb", "sábado": "Sáb",
         "domingo": "Dom", "domingos": "Dom",
     }
     abbrev = [day_map.get(d.lower(), d[:3].title()) for d in valid_days]
     if len(abbrev) == 7:
-        return "Todos los d\u00edas"
-    if len(abbrev) == 5 and not ("s\u00e1b" in abbrev or "Dom" in abbrev):
+        return "Todos los días"
+    if len(abbrev) == 5 and not ("Sáb" in abbrev or "Dom" in abbrev):
         return "Lun-Vie"
     return ", ".join(abbrev)
+
+
+def _infer_quality_label(promo: Dict[str, Any]) -> str:
+    raw_data = promo.get("raw_data") or {}
+    source = promo.get("source_url", "")
+    
+    if promo.get("result_quality_label") == "CURATED":
+        return "CURATED"
+    
+    if raw_data.get("source") == "pdf":
+        return "PDF"
+    if raw_data.get("source") == "html":
+        return "HTML"
+    if raw_data.get("source") == "api":
+        return "API"
+    if raw_data.get("collector") in ["continental", "ueno", "sudameris"]:
+        return "PDF"
+    
+    if source.endswith(".pdf"):
+        return "PDF"
+    if source.startswith("http"):
+        if "beneficio" in source.lower():
+            return "HTML"
+        return "HTML"
+    
+    return "CLEAN"
 
 
 def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
@@ -217,6 +346,11 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
     discount_raw = promo.get("discount_percent")
     conditions_text = promo.get("conditions_text") or ""
     conditions_short_raw = promo.get("conditions_short") or ""
+
+    if _is_fake_merchant(merchant):
+        merchant = ""
+    if _has_legal_banking_text(title) or _has_legal_banking_text(raw_text):
+        return None
 
     try:
         discount = float(discount_raw) if discount_raw else None
@@ -264,6 +398,13 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
 
     is_category_level = _is_category_level_promo(merchant, category, title)
     promo_type = _get_promo_type(merchant, category, title)
+    
+    if is_category_level and merchant and _is_fake_merchant(merchant):
+        merchant = ""
+    
+    if merchant and _is_fake_merchant(merchant):
+        merchant = ""
+    
     display_name = _get_display_name(merchant, category, title)
     display_title = _get_display_title(merchant, category, title, discount, installment, benefit_type)
     highlight_value, highlight_type = _get_highlight(discount, installment, benefit_type)
@@ -300,6 +441,7 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
         "bnf": "BNF", "py_bnf": "BNF",
     }
     bank_display = bank_known_names.get(bank_id.lower(), bank_id.title()) if bank_id else ""
+    quality_label = _infer_quality_label(promo)
 
     result = {
         "bank_id": bank_id,
@@ -328,7 +470,7 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
         "emblem": emblem or None,
         "source_url": promo.get("source_url") or "",
         "quality_score": promo.get("result_quality_score") or promo.get("quality_score") or 0.0,
-        "quality_label": promo.get("result_quality_label") or "UNKNOWN",
+        "quality_label": quality_label,
     }
 
     return result
@@ -361,18 +503,16 @@ def filter_public_promos(
 ) -> List[Dict[str, Any]]:
     clean = []
     for p in promos:
-        merchant = (p.get("merchant_name") or "").lower().strip()
-        title = (p.get("title") or "").lower().strip()
+        merchant = p.get("merchant_name") or ""
+        title = p.get("title") or ""
+        raw_text = p.get("raw_text") or ""
         category = p.get("category") or "General"
-
-        if merchant in BANK_NAMES:
+        
+        if _is_fake_merchant(merchant):
             continue
-
-        if merchant.startswith("reintegro del") or merchant.startswith("descuento del"):
+        
+        if _has_legal_banking_text(title) or _has_legal_banking_text(raw_text):
             continue
-
-        if "comercios adheridos" in merchant or "comercios participantes" in merchant:
-            pass
 
         if require_benefit:
             if not p.get("discount_percent") and not p.get("installment_count"):
@@ -387,8 +527,13 @@ def filter_public_promos(
         if discount_val < min_discount and not p.get("installment_count"):
             continue
 
-        if category == "General" and not merchant and not p.get("discount_percent"):
-            continue
+        if category == "General":
+            has_benefit = p.get("discount_percent") or p.get("installment_count")
+            has_extras = p.get("valid_from") or p.get("valid_to") or p.get("cap_amount")
+            if has_benefit and has_extras:
+                pass
+            else:
+                continue
 
         clean.append(p)
 
