@@ -147,6 +147,7 @@ class QueryResponse(BaseModel):
     query: str
     total_results: int = 0
     results: List[PromotionResult] = Field(default_factory=list)
+    version: str = None
 
 
 class FuelQueryResponse(BaseModel):
@@ -362,6 +363,7 @@ async def today(
             query=f"today{(':' + category) if category else ''}",
             total_results=len(serialized),
             results=serialized,
+            version=APP_VERSION,
         )
     except Exception as e:
         logger.error(f"Today error: {e}")
