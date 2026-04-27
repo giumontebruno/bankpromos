@@ -427,6 +427,13 @@
       const item = filteredItems[idx];
       if (!item) return;
       
+      const previewArea = document.getElementById("previewArea");
+      if (item.image_url) {
+        previewArea.innerHTML = `<img src="${API_BASE}${item.image_url}" style="max-width:100%;max-height:300px;object-fit:contain;" onerror="this.parentElement.innerHTML='Error cargando imagen'">`;
+      } else {
+        previewArea.innerHTML = "Vista previa del documento";
+      }
+      
       document.getElementById("rawText").textContent = item.detected_text || "(sin texto detectado)";
       document.getElementById("merchantName").value = item.detected_merchant || "";
       document.getElementById("category").value = item.detected_category || "";

@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from bankpromos import list_scrapers
@@ -50,6 +51,11 @@ app = FastAPI(
     description="API para consultas de promociones y beneficios bancarios en Paraguay",
     version="0.1.0",
 )
+
+import os
+PREVIEWS_DIR = "data/previews"
+os.makedirs(PREVIEWS_DIR, exist_ok=True)
+app.mount("/previews", StaticFiles(directory=PREVIEWS_DIR), name="previews")
 
 
 app.add_middleware(
@@ -301,6 +307,16 @@ async def build_info():
     except Exception as e:
         logger.error(f"Build info error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/admin/preview-status")
+async def preview_status():
+    try:
+        from bankpromos.preview_service import get_preview_status
+        return get_preview_status()
+    except Exception as e:
+        logger.error(f"Preview status error: {e}")
+        return {"error": str(e)}
 
 
 @app.post("/collect", response_model=CollectResponse)

@@ -215,6 +215,25 @@ def _load_review_items() -> List[Dict[str, Any]]:
 
 def _save_review_items(items: List[Dict[str, Any]]) -> None:
     try:
+        try:
+            from bankpromos.preview_service import generate_preview_for_item
+        except ImportError:
+            generate_preview_for_item = None
+        
+        for item in items:
+            source_file = item.get("source_file", "")
+            pattern_key = item.get("pattern_key", "")
+            
+            if generate_preview_for_item and source_file and source_file.endswith(".pdf") and pattern_key:
+                pdf_filename = source_file if "/" not in source_file else source_file.split("/")[-1]
+                pdf_path = f"data/pdfs/{pdf_filename}"
+                import os
+                if os.path.exists(pdf_path):
+                    page = item.get("page", 0)
+                    image_url = generate_preview_for_item(pattern_key, pdf_path, page)
+                    if image_url:
+                        item["image_url"] = image_url
+        
         existing = _load_review_items()
         
         existing_by_key = {item.get("pattern_key"): item for item in existing if item.get("pattern_key")}
