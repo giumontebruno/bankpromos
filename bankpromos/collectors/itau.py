@@ -192,6 +192,7 @@ class ItauCollector(BaseCollector):
             text,
             bank_id=self.bank_id,
             source_url=source.url,
+            use_split_parser=True,
         )
 
         promos = []

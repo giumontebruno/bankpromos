@@ -177,6 +177,7 @@ def _serialize_promo(promo) -> Dict[str, Any]:
         "raw_text": promo.raw_text,
         "result_quality_score": promo.result_quality_score,
         "result_quality_label": promo.result_quality_label,
+        "quality_label": promo.result_quality_label,
     }
     return to_ui_promo(promo_dict)
 

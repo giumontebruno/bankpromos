@@ -370,6 +370,28 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
     conditions_text = promo.get("conditions_text") or ""
     conditions_short_raw = promo.get("conditions_short") or ""
 
+    title = title.replace("reinegro", "reintegro")
+    raw_text = raw_text.replace("reinegro", "reintegro")
+    conditions_text = conditions_text.replace("reinegro", "reintegro")
+    conditions_short_raw = conditions_short_raw.replace("reinegro", "reintegro")
+    promo = {**promo, "title": title, "raw_text": raw_text, "conditions_text": conditions_text, "conditions_short": conditions_short_raw}
+
+    reject_phrases = [
+        "hacete cliente", "tu tarjeta", "al instante",
+        "tengo descuentos", "farmacias exclus",
+    ]
+    title_lower = title.lower()
+    raw_lower = raw_text.lower()
+    display_check = ""
+    for phrase in reject_phrases:
+        if phrase in title_lower or phrase in raw_lower:
+            return None
+    
+    weak_merchants = {"tengo", "desde", "vigente", "beneficios", "descuentos"}
+    merchant_lower = merchant.lower().strip() if merchant else ""
+    if merchant_lower in weak_merchants:
+        return None
+
     if _is_fake_merchant(merchant):
         merchant = ""
     if _has_legal_banking_text(title) or _has_legal_banking_text(raw_text):
@@ -482,7 +504,7 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
         "is_category_level": is_category_level,
         "promo_type_display": promo_type,
         "display_name": display_name,
-        "display_title": display_title,
+        "display_title": display_title.replace("reinegro", "reintegro"),
         "display_subtitle": display_subtitle,
         "discount_percent": discount,
         "installment_count": installment,
@@ -500,7 +522,7 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
         "emblem": emblem or None,
         "source_url": promo.get("source_url") or "",
         "quality_score": promo.get("result_quality_score") or promo.get("quality_score") or 0.0,
-        "quality_label": quality_label,
+        "quality_label": quality_label or promo.get("quality_label") or "UNKNOWN",
     }
 
     return result

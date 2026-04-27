@@ -4,7 +4,7 @@ import re
 from datetime import datetime, date
 from decimal import Decimal
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -238,6 +238,190 @@ def _has_promo_signal(text: str) -> bool:
     return any(re.search(p, text, re.I) for p in patterns)
 
 
+def is_valid_merchant(text: str) -> bool:
+    if not text:
+        return False
+    text_clean = text.strip().rstrip("-").rstrip("/").rstrip(",").rstrip(":").strip()
+    text_lower = text_clean.lower()
+    if len(text_clean.split()) > 5:
+        return False
+    blacklist = ["beneficios", "vigencia", "condiciones", "comercio", "promocion", "tarjeta", "banco", "credito", "aplica", "consulta", "valida", "solo"]
+    if any(word in text_lower for word in blacklist):
+        return False
+    return True
+
+
+def split_merchants(text: str) -> List[str]:
+    if not text:
+        return []
+    cleaned = text.strip().strip("-").strip("/").strip(",").strip()
+    parts = re.split(r"\s*[-/,]+\s*", cleaned)
+    result = []
+    for p in parts:
+        p = p.strip().rstrip(":").strip()
+        if p and len(p) > 1 and not re.match(r"^[\d\s,\.\-:]+$", p):
+            result.append(p)
+    return result
+
+
+def extract_merchant(block: str) -> List[str]:
+    first_discount = re.search(r"(\d{1,2})\s*%|hasta\s*(\d+)\s*cuotas?", block, re.I)
+    end_pos = first_discount.start() if first_discount else len(block)
+    before = block[:end_pos]
+    merchants = []
+    lines = [ln.strip() for ln in before.splitlines() if ln.strip()]
+    for ln in reversed(lines):
+        ln = ln.strip().rstrip(" -").rstrip("-").rstrip(":").strip()
+        if not ln or len(ln) < 2:
+            continue
+        if is_valid_merchant(ln):
+            merchants.append(ln)
+            break
+        else:
+            splitted = split_merchants(ln)
+            if splitted:
+                merchants.extend(splitted)
+                break
+    valid = [m for m in merchants if is_valid_merchant(m)]
+    return valid[:4]
+
+
+def extract_cap(block: str) -> Optional[int]:
+    m = re.search(r"(?:tope|m[aá]ximo|top[e]?|hasta)\s*(?:m[aá]ximo|m[aá]x?)?\s*(?:de\s*)?(?:gs?\s*\.?|guaran(?:ties)?)?\.?\s*([\d\.]+)", block, re.I)
+    if m:
+        num = m.group(1).replace(".", "").replace(",", "")
+        if num.isdigit() and len(num) >= 4:
+            return int(num)
+    m = re.search(r"cap[:\s]*([\d]+)", block, re.I)
+    if m:
+        num = m.group(1)
+        if len(num) >= 4:
+            return int(num)
+    return None
+
+
+def extract_discount(block: str) -> Optional[int]:
+    patterns = [
+        r"\b(\d{1,2})\s*%",
+        r"(\d{1,2})%\s*de\s*(reintegro|descuento)",
+        r"hasta\s*(\d{1,2})\s*%",
+    ]
+    for p in patterns:
+        m = re.search(p, block, re.I)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def extract_installment(block: str) -> Optional[int]:
+    m = re.search(r"hasta\s*(\d+)\s*cuotas?", block, re.I)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def extract_cap(block: str) -> Optional[int]:
+    patterns = [
+        r"(?:Tope|m[aá]ximo|top[e]?|hasta)\s*(?:m[aá]ximo|m[aá]x?)?\s*(?:de\s*)?(?:gs?\s*\.?|guaran(?:ties)?)?\.?\s*([\d\.]+)",
+        r"Gs\.?\s*([\d\.]+)",
+        r"cap[:\s]*([\d]+)",
+    ]
+    for p in patterns:
+        m = re.search(p, block, re.I)
+        if m:
+            num = m.group(1).replace(".", "").replace(",", "")
+            if num.isdigit():
+                return int(num)
+    return None
+
+
+def extract_valid_days(block: str) -> List[str]:
+    days_found = []
+    for ln in block.splitlines()[:10]:
+        ln_lower = ln.lower().strip()
+        matches = re.findall(r"(?:lunes|martes|miercoles|miercoles|j[v]?|jueves|viernes|s[áa]bado|domingo)", ln_lower)
+        days_found.extend([d.title() for d in matches])
+    return list(dict.fromkeys(days_found))[:7]
+
+
+def is_garbage_block(block: str) -> bool:
+    if not block or len(block) > 600:
+        return True
+    block_lower = block.lower()
+    garbage_words = ["vigencia", "condiciones", "aplica", "consulta", "beneficios", "nota:", "importante"]
+    if any(word in block_lower for word in garbage_words):
+        return True
+    if extract_discount(block) is None and extract_installment(block) is None:
+        return True
+    return False
+
+
+def split_promo_block(text: str, start: int, end: int) -> str:
+    ctx_start = max(0, start - 150)
+    block = text[ctx_start:end].strip()
+    block = re.sub(r"\n{3,}", "\n\n", block)
+    return block
+
+
+def split_by_discount(text: str) -> List[Dict[str, Any]]:
+    if not text:
+        return []
+    
+    promos = []
+    seen = set()
+    
+    discount_patterns = [
+        (r"\b(\d{1,2})\s*%", "percent"),
+        (r"hasta\s*(\d+)\s*cuotas?", "installment"),
+    ]
+    
+    all_matches = []
+    for pattern, ptype in discount_patterns:
+        for m in re.finditer(pattern, text, re.I):
+            all_matches.append((m.start(), m.end(), ptype, m.group(1)))
+    
+    all_matches.sort(key=lambda x: x[0])
+    
+    if not all_matches:
+        return []
+    
+    for i, (start, end, ptype, value) in enumerate(all_matches):
+        next_start = all_matches[i + 1][0] if i + 1 < len(all_matches) else len(text)
+        
+        block = split_promo_block(text, start, next_start)
+        
+        if is_garbage_block(block):
+            continue
+        
+        merchants = extract_merchant(block)
+        if not merchants:
+            continue
+        
+        discount = extract_discount(block) if ptype == "percent" else None
+        installment = extract_installment(block) if ptype == "installment" else None
+        
+        for merchant in merchants:
+            if not is_valid_merchant(merchant):
+                continue
+            
+            key = (merchant.strip().lower(), discount, installment)
+            if key in seen:
+                continue
+            seen.add(key)
+            
+            promo = {
+                "merchant": merchant.strip(),
+                "discount_percent": discount,
+                "installment_count": installment,
+                "cap_amount": extract_cap(block),
+                "valid_days": extract_valid_days(block),
+                "conditions_short": "",
+            }
+            promos.append(promo)
+    
+    return promos
+
+
 def _extract_ueno_promos(text: str, bank_id: str, source_url: str) -> List[PromotionModel]:
     """Special handling for Ueno Black monthly format"""
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
@@ -322,6 +506,7 @@ def parse_promotions_from_pdf(
     source_url: str = "",
     category_hint: str = None,
     merchant_hint: str = None,
+    use_split_parser: bool = True,
 ) -> List[PromotionModel]:
     text_lower = text.lower()
     
@@ -338,6 +523,9 @@ def parse_promotions_from_pdf(
                 promo.raw_data["extraction_confidence"] = _calculate_confidence(promo)
             return ueno_promos
     
+    if use_split_parser:
+        return _parse_with_split_parser(text, bank_id, source_url, category_hint, merchant_hint, global_from, global_to)
+    
     blocks = split_pdf_into_blocks(text)
     
     promos = []
@@ -350,6 +538,58 @@ def parse_promotions_from_pdf(
                 promo.valid_to = global_to
             promo.raw_data["extraction_confidence"] = _calculate_confidence(promo)
             promos.append(promo)
+    
+    return promos
+
+
+def _parse_with_split_parser(
+    text: str,
+    bank_id: str,
+    source_url: str,
+    category_hint: str,
+    merchant_hint: str,
+    global_from,
+    global_to,
+) -> List[PromotionModel]:
+    raw_promos = split_by_discount(text)
+    
+    promos = []
+    for rp in raw_promos:
+        merchant = rp.get("merchant", "")
+        discount = rp.get("discount_percent")
+        installment = rp.get("installment_count")
+        cap = rp.get("cap_amount")
+        valid_days = rp.get("valid_days", [])
+        
+        if not merchant and not discount and not installment:
+            continue
+        
+        title = f"{discount}% reintegro" if discount else (f"hasta {installment} cuotas" if installment else "Promo")
+        
+        category = category_hint or "General"
+        if merchant_hint:
+            pass
+        
+        raw_text = f"{merchant} - {title}"[:500]
+        
+        promo = PromotionModel(
+            bank_id=bank_id,
+            title=title,
+            merchant_name=merchant,
+            category=category,
+            benefit_type="reintegro" if discount else "cuotas",
+            discount_percent=Decimal(discount) if discount else None,
+            installment_count=installment,
+            valid_days=valid_days,
+            valid_from=global_from,
+            valid_to=global_to,
+            source_url=source_url,
+            raw_text=raw_text,
+            raw_data={"source": "split_parser"},
+            cap_amount=Decimal(cap) if cap else None,
+        )
+        
+        promos.append(promo)
     
     return promos
 

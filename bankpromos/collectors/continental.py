@@ -123,6 +123,7 @@ class ContinentalCollector(BaseCollector):
             source_url=source.url,
             category_hint=category_hint,
             merchant_hint=merchant_hint,
+            use_split_parser=True,
         )
 
         promos = []
