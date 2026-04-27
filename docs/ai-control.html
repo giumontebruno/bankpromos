@@ -196,10 +196,13 @@
       
       <div class="filter-chips" id="filterChips">
         <div class="filter-chip active" data-filter="all">Todos</div>
+        <div class="filter-chip" data-filter="sudameris">Sudameris</div>
+        <div class="filter-chip" data-filter="continental">Continental</div>
+        <div class="filter-chip" data-filter="ueno">Ueno</div>
+        <div class="filter-chip" data-filter="itau">Itau</div>
         <div class="filter-chip" data-filter="no_merchant">Sin comercio</div>
         <div class="filter-chip" data-filter="general">General</div>
         <div class="filter-chip" data-filter="low_confidence">Bajo confianza</div>
-        <div class="filter-chip" data-filter="pdf">PDF</div>
       </div>
       
       <div class="review-list" id="reviewList">
@@ -323,6 +326,12 @@
     }
     
     function getItemReason(item) {
+      const bank = (item.bank || "").toLowerCase();
+      if (bank.includes("sudameris")) return "sudameris";
+      if (bank.includes("continental")) return "continental";
+      if (bank.includes("ueno")) return "ueno";
+      if (bank.includes("itau")) return "itau";
+      
       if (!item.detected_merchant || item.detected_merchant.length < 3) return "no_merchant";
       if (item.detected_category === "General" || !item.detected_category) return "general";
       if ((item.result_quality_score || 0) < 0.5) return "low_confidence";
@@ -426,6 +435,13 @@
       document.getElementById("capAmount").value = item.detected_cap || "";
       document.getElementById("validDays").value = (item.detected_valid_days || []).join(", ");
       document.getElementById("conditionsText").value = item.detected_conditions || "";
+      
+      const preview = document.getElementById("previewArea");
+      if (item.image_url) {
+        preview.innerHTML = '<img src="' + item.image_url + '" style="max-width:100%;max-height:280px;border-radius:8px;">';
+      } else {
+        preview.innerHTML = 'Vista previa: ' + (item.source_file || 'sin documento');
+      }
     }
     
     async function saveCorrection(status) {

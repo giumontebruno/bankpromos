@@ -215,8 +215,19 @@ def _load_review_items() -> List[Dict[str, Any]]:
 
 def _save_review_items(items: List[Dict[str, Any]]) -> None:
     try:
+        existing = _load_review_items()
+        
+        existing_by_key = {item.get("pattern_key"): item for item in existing if item.get("pattern_key")}
+        
+        for new_item in items:
+            key = new_item.get("pattern_key")
+            if key:
+                existing_by_key[key] = new_item
+        
+        merged = list(existing_by_key.values())
+        
         with open(REVIEW_FILE, "w", encoding="utf-8") as f:
-            json.dump(items, f, ensure_ascii=False, indent=2, default=str)
+            json.dump(merged, f, ensure_ascii=False, indent=2, default=str)
     except Exception as e:
         logger.error(f"Failed to save review items: {e}")
 
