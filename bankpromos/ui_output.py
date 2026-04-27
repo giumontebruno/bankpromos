@@ -151,6 +151,9 @@ def _is_category_level_promo(merchant: Optional[str], category: Optional[str], t
 
     if category and category != "General" and not merchant:
         return True
+    
+    if category == "Combustible" and m in ("combustible", "estaciones adheridas", "estaciones de servicio"):
+        return True
 
     return False
 
@@ -168,9 +171,14 @@ def _get_promo_type(merchant: Optional[str], category: Optional[str], title: str
 
 
 def _get_display_name(merchant: Optional[str], category: Optional[str], title: str = "") -> str:
+    m_lower = (merchant or "").lower().strip()
+    
     if merchant and merchant.strip() and not _is_fake_merchant(merchant):
         return merchant.strip()
-
+    
+    if category == "Combustible":
+        return "Estaciones adheridas"
+    
     if category and category in CATEGORY_COMERCIOS:
         return CATEGORY_COMERCIOS[category]
 
@@ -180,14 +188,14 @@ def _get_display_name(merchant: Optional[str], category: Optional[str], title: s
     return "Comercios adheridos"
 
 
-def _get_display_title(
-    merchant: Optional[str],
-    category: Optional[str],
-    title: str,
-    discount_percent: Optional[float],
-    installment_count: Optional[int],
-    benefit_type: Optional[str],
-) -> str:
+def _get_display_title(merchant, category, title, discount_percent, installment_count, benefit_type, is_category_level=False):
+    if is_category_level and category == "Combustible":
+        if discount_percent and discount_percent > 0:
+            return f"{int(discount_percent)}% de reintegro en Combustible"
+        if installment_count and installment_count > 0:
+            return f"{installment_count} cuotas en Combustible"
+        return "Combustible adherido"
+    
     if title and len(title.strip()) > 3:
         clean = title.strip()
         if _is_fake_merchant(clean):
@@ -197,6 +205,7 @@ def _get_display_title(
         generic_prefixes = (
             "beneficio del ", "reintegro del ", "descuento del ",
             "los meses con ", "un descuento del ",
+            "combustible en ", "combustible ",
         )
         for prefix in generic_prefixes:
             if clean.lower().startswith(prefix):
@@ -222,6 +231,9 @@ def _get_display_title(
     if merchant and merchant.strip() and not _is_fake_merchant(merchant):
         return f"Promo en {merchant}"
 
+    if category == "Combustible":
+        return "Combustible adherido"
+    
     if category:
         return f"Promo en {category}"
 
@@ -312,26 +324,37 @@ def _format_days_display(valid_days: List[str]) -> Optional[str]:
 
 
 def _infer_quality_label(promo: Dict[str, Any]) -> str:
+    source = promo.get("source_url") or ""
+    source_lower = source.lower()
+    quality_label = promo.get("result_quality_label")
     raw_data = promo.get("raw_data") or {}
-    source = promo.get("source_url", "")
     
-    if promo.get("result_quality_label") == "CURATED":
-        return "CURATED"
+    if quality_label:
+        quality_label = str(quality_label).strip()
+        if quality_label.upper() in ("CURATED", "PDF", "HTML", "API", "CLEAN"):
+            return quality_label.upper()
+        if quality_label and quality_label != "UNKNOWN":
+            return quality_label
     
-    if raw_data.get("source") == "pdf":
-        return "PDF"
-    if raw_data.get("source") == "html":
-        return "HTML"
-    if raw_data.get("source") == "api":
-        return "API"
-    if raw_data.get("collector") in ["continental", "ueno", "sudameris"]:
+    if raw_data:
+        if isinstance(raw_data, str):
+            if "extraction_confidence" in raw_data:
+                return "PDF"
+        elif isinstance(raw_data, dict):
+            coll = raw_data.get("collector", "")
+            src = raw_data.get("source", "")
+            if coll or src:
+                return src.title() if src else coll.title()
+    
+    if ".pdf" in source_lower or "pdfs\\" in source_lower or "pdfs/" in source_lower:
         return "PDF"
     
-    if source.endswith(".pdf"):
-        return "PDF"
-    if source.startswith("http"):
-        if "beneficio" in source.lower():
+    if "ueno" in source_lower or "itau" in source_lower or "sudameris" in source_lower or "continental" in source_lower:
+        if source.startswith("http"):
             return "HTML"
+        return "PDF"
+    
+    if source.startswith("http"):
         return "HTML"
     
     return "CLEAN"
@@ -406,7 +429,7 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
         merchant = ""
     
     display_name = _get_display_name(merchant, category, title)
-    display_title = _get_display_title(merchant, category, title, discount, installment, benefit_type)
+    display_title = _get_display_title(merchant, category, title, discount, installment, benefit_type, is_category_level)
     highlight_value, highlight_type = _get_highlight(discount, installment, benefit_type)
 
     conditions_short = conditions_short_raw
@@ -421,6 +444,13 @@ def to_ui_promo(promo: Dict[str, Any]) -> Dict[str, Any]:
             parts.append(f"Tope: {_format_cap_display(cap_amount)}")
         if valid_days:
             parts.append(_format_days_display(valid_days) or "")
+        
+        if category == "Combustible" and is_category_level:
+            if not parts:
+                parts.append("Exclusivo POS")
+            else:
+                parts[0] = "Exclusivo POS"
+        
         conditions_short = " | ".join(p for p in parts if p)
 
     display_subtitle = _get_display_subtitle(valid_days, valid_from, valid_to, conditions_short)

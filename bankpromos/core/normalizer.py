@@ -355,6 +355,20 @@ def get_today_day_name() -> str:
     return days[datetime.now().weekday()]
 
 
+def _is_active_this_week(promo: PromotionModel) -> bool:
+    today = datetime.now().date()
+    
+    if promo.valid_from and promo.valid_from > today:
+        return False
+    if promo.valid_to and promo.valid_to < today:
+        return False
+    
+    if promo.valid_days and len(promo.valid_days) > 0:
+        return True
+    
+    return True
+
+
 def _is_active_today(promo: PromotionModel) -> bool:
     today = datetime.now().date()
     
@@ -377,8 +391,12 @@ def get_best_promotions_today(
     promos: List[PromotionModel],
     category: Optional[str] = None,
     limit: int = 20,
+    include_week: bool = False,
 ) -> List[PromotionModel]:
-    filtered = [p for p in promos if _is_active_today(p)]
+    if include_week:
+        filtered = [p for p in promos if _is_active_this_week(p)]
+    else:
+        filtered = [p for p in promos if _is_active_today(p)]
     
     if category:
         cat_lower = category.lower()

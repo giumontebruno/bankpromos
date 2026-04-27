@@ -4,129 +4,51 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bank Promos PY</title>
-  <meta name="description" content="Consultá promociones bancarias y el mejor ahorro en combustible en Paraguay." />
+  <meta name="description" content="Promociones bancarias y el mejor ahorro en combustible en Paraguay." />
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="app-layout">
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">BP</div>
-        <span class="sidebar-logo-text">Bank Promos</span>
+  <div class="app">
+    <header class="header">
+      <h1 class="logo">Bank <span>Promos</span></h1>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input id="searchInput" class="search-input" type="text" placeholder="Buscar promoción, tarjeta..." />
       </div>
-      
-      <nav class="sidebar-nav">
-        <a class="nav-item active" data-view="today">
-          <span class="nav-icon">📋</span>
-          Hoy
-        </a>
-        <a class="nav-item" data-view="categories">
-          <span class="nav-icon">🏷️</span>
-          Categorías
-        </a>
-        <a class="nav-item" data-view="fuel">
-          <span class="nav-icon">⛽</span>
-          Combustible
-        </a>
-        <a class="nav-item" data-view="search">
-          <span class="nav-icon">🔍</span>
-          Buscar
-        </a>
-      </nav>
-      
-      <div class="sidebar-footer">
-        <a class="nav-item" href="/admin.html" target="_blank">
-          <span class="nav-icon">⚙️</span>
-          Admin
-        </a>
-      </div>
-    </aside>
+    </header>
 
-    <main class="main-content">
-      <header class="header">
-        <div>
-          <h1 class="header-title">Promos de hoy</h1>
-          <p class="header-subtitle">Las mejores promociones bancarias disponibles ahora</p>
-        </div>
-        <div class="search-bar">
-          <span class="search-icon">🔍</span>
-          <input id="globalSearch" type="text" placeholder="Buscar supermercado, combustible, ropa..." />
-        </div>
-      </header>
+    <div class="categories" id="categories">
+      <button class="category-chip active" data-cat="">Todas</button>
+      <button class="category-chip" data-cat="Supermercados">🛒 Supermercados</button>
+      <button class="category-chip" data-cat="Combustible">⛽ Combustible</button>
+      <button class="category-chip" data-cat="Gastronomía">🍔 Gastronomía</button>
+      <button class="category-chip" data-cat="Tecnología">📱 Tecnología</button>
+      <button class="category-chip" data-cat="Indumentaria">👕 Indumentaria</button>
+      <button class="category-chip" data-cat="Belleza">💅 Belleza</button>
+    </div>
 
-      <section class="summary-cards">
-        <div class="summary-card">
-          <div class="summary-card-label">Promos activas</div>
-          <div class="summary-card-value" id="promosCount">-</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-card-label">Mejor categoría</div>
-          <div class="summary-card-value accent" id="bestCategory">-</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-card-label">Mejor combustible</div>
-          <div class="summary-card-value success" id="bestFuel">-</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-card-label">Última actualización</div>
-          <div class="summary-card-value" id="lastUpdate">-</div>
-        </div>
-      </section>
+    <section class="hero" id="hero"></section>
 
-      <section class="section-header">
-        <h2 class="section-title">Categorías</h2>
-      </section>
-      <div class="category-chips" id="categoryChips">
-        <button class="category-chip" data-category="Combustible">
-          <span class="category-chip-icon">⛽</span> Combustible
-        </button>
-        <button class="category-chip" data-category="Supermercados">
-          <span class="category-chip-icon">🛒</span> Supermercados
-        </button>
-        <button class="category-chip" data-category="Gastronomía">
-          <span class="category-chip-icon">🍔</span> Gastronomía
-        </button>
-        <button class="category-chip" data-category="Tecnología">
-          <span class="category-chip-icon">📱</span> Tecnología
-        </button>
-        <button class="category-chip" data-category="Indumentaria">
-          <span class="category-chip-icon">👕</span> Indumentaria
-        </button>
-        <button class="category-chip" data-category="Salud">
-          <span class="category-chip-icon">💊</span> Salud
-        </button>
-        <button class="category-chip" data-category="Viajes">
-          <span class="category-chip-icon">✈️</span> Viajes
-        </button>
-        <button class="category-chip" data-category="Belleza">
-          <span class="category-chip-icon">💅</span> Belleza
-        </button>
-      </div>
-
-      <section class="section-header">
-        <h2 class="section-title">Promociones destacadas</h2>
-        <span class="section-subtitle" id="promoCountLabel"></span>
-      </section>
-      <div id="promoGrid" class="promo-grid">
+    <section class="section">
+      <h2 class="section-title">🔥 Promociones destacadas</h2>
+      <div class="promo-grid" id="promoGrid">
         <div class="loading">
           <div class="spinner"></div>
-          Cargando promos...
+          Cargando...
         </div>
       </div>
+    </section>
 
-      <section class="fuel-section" id="fuelSection">
-        <div class="section-header">
-          <h2 class="section-title">Mejor combustible</h2>
+    <section class="section">
+      <h2 class="section-title">⛽ Mejor combustible</h2>
+      <div class="fuel-list" id="fuelList">
+        <div class="loading">
+          <div class="spinner"></div>
+          Cargando...
         </div>
-        <div id="fuelResults">
-          <div class="loading">
-            <div class="spinner"></div>
-            Cargando combustible...
-          </div>
-        </div>
-      </section>
-    </main>
+      </div>
+    </section>
   </div>
 
   <script src="./app.js"></script>

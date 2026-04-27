@@ -23,6 +23,52 @@ def get_category_priority(category: Optional[str]) -> int:
     return CATEGORY_PRIORITY.get(category or "", 99)
 
 
+def diversify_promos(
+    promos: List[Dict[str, Any]],
+    max_per_category: int = 3,
+    min_categories: int = 3,
+) -> List[Dict[str, Any]]:
+    if not promos:
+        return []
+    
+    priority_cats = ["Supermercados", "Combustible", "Gastronomía"]
+    
+    by_category: Dict[str, List[Dict[str, Any]]] = {}
+    for p in promos:
+        cat = p.get("category") or "Otro"
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append(p)
+    
+    for cat in by_category:
+        by_category[cat].sort(key=lambda x: -(x.get("discount_percent") or 0))
+        by_category[cat] = by_category[cat][:max_per_category]
+    
+    result = []
+    for cat in priority_cats:
+        if cat in by_category:
+            result.extend(by_category.pop(cat))
+    
+    other_cats = sorted(by_category.keys(), key=lambda c: CATEGORY_PRIORITY.get(c, 99))
+    for cat in other_cats:
+        result.extend(by_category[cat])
+    
+    unique_cats = set(p.get("category") for p in result if p.get("category"))
+    if len(unique_cats) < min_categories and len(by_category) > 0:
+        remaining = []
+        for cat in other_cats:
+            remaining.extend(by_category[cat])
+        remaining.sort(key=lambda x: -(x.get("discount_percent") or 0))
+        
+        for p in remaining:
+            if len(set(pc.get("category") for pc in result)) >= min_categories:
+                break
+            if p not in result:
+                result.append(p)
+    
+    return result
+
+
 GENERIC_TITLE_WORDS = {
     "beneficio", "beneficios", "promocion", "promociones", "descuento",
     "oferta", "exclusivo", "exclusivos", "especial", "especiales",
@@ -213,43 +259,38 @@ def filter_noise(promos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         raw_lower = raw_text.lower()
         category = p.get("category") or "General"
         
+        if not merchant and not title:
+            continue
+        
+        if merchant_lower in BANK_NAMES:
+            continue
+        
+        if _is_generic_promo(title, merchant):
+            continue
+        
         for fake in FAKE_MERCHANT_PATTERNS:
             if fake in merchant_lower:
                 break
         else:
-            for kw in FAKE_MERCHANT_PATTERNS:
-                if kw in merchant_lower:
+            for legal_kw in LEGAL_BANKING_KEYWORDS:
+                if legal_kw in title_lower or legal_kw in raw_lower:
                     break
             else:
-                if merchant_lower in BANK_NAMES:
+                if category == "General" and not merchant and not p.get("discount_percent") and not p.get("installment_count"):
                     pass
-                elif _is_generic_promo(title, merchant):
+                elif not p.get("discount_percent") and not p.get("installment_count") and not p.get("benefit_type"):
                     pass
                 else:
-                    for legal_kw in LEGAL_BANKING_KEYWORDS:
-                        if legal_kw in title_lower or legal_kw in raw_lower:
-                            break
-                    else:
-                        if not merchant and not title:
-                            pass
-                        elif category == "General" and not merchant and not p.get("discount_percent") and not p.get("installment_count"):
-                            pass
-                        elif not p.get("discount_percent") and not p.get("installment_count") and not p.get("benefit_type"):
-                            pass
-                        else:
-                            cap = p.get("cap_amount")
-                            p_copy = dict(p)
-                            
-                            if not p.get("conditions_short"):
-                                conditions = p.get("conditions_text") or p.get("raw_text")
-                                p_copy["conditions_short"] = format_short_conditions(
-                                    conditions,
-                                    cap,
-                                    p.get("valid_days", []),
-                                    p.get("payment_method"),
-                                )
-                            
-                            p_copy["category_priority"] = get_category_priority(category)
-                            clean.append(p_copy)
+                    p_copy = dict(p)
+                    if not p_copy.get("conditions_short"):
+                        conditions = p_copy.get("conditions_text") or p_copy.get("raw_text")
+                        p_copy["conditions_short"] = format_short_conditions(
+                            conditions,
+                            p_copy.get("cap_amount"),
+                            p_copy.get("valid_days", []),
+                            p_copy.get("payment_method"),
+                        )
+                    p_copy["category_priority"] = get_category_priority(category)
+                    clean.append(p_copy)
     
     return clean

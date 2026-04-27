@@ -122,8 +122,10 @@ class PromotionResult(BaseModel):
     highlight_type: str = ""
     emblem: Optional[str] = None
     source_url: str = ""
+    quality_score: float = 0.0
+    quality_label: Optional[str] = None
     result_quality_score: float = 0.0
-    result_quality_label: str = "UNKNOWN"
+    result_quality_label: Optional[str] = None
 
 
 class FuelResultEntry(BaseModel):
@@ -287,20 +289,25 @@ async def today(
 ):
     try:
         from bankpromos.core.normalizer import get_best_promotions_today
-        from bankpromos.ranking_service import filter_noise, rank_promos_for_today
+        from bankpromos.ranking_service import filter_noise, rank_promos_for_today, diversify_promos
 
         promos = await run_blocking(get_promotions_data, force_refresh=False, db_path=config.db_path)
         
         if category:
-            results = get_best_promotions_today(promos, category=category or None, limit=limit * 3)
+            results = get_best_promotions_today(promos, category=category or None, limit=limit * 3, include_week=True)
         else:
-            results = get_best_promotions_today(promos, category=None, limit=limit * 3)
+            results = get_best_promotions_today(promos, category=None, limit=limit * 3, include_week=True)
         
         serialized = [_serialize_promo(p) for p in results]
         serialized = [s for s in serialized if s is not None]
         serialized = filter_noise(serialized)
         serialized = filter_public_promos(serialized)
-        serialized = rank_promos_for_today(serialized, limit=limit)
+        
+        if not category:
+            serialized = diversify_promos(serialized, max_per_category=3, min_categories=3)
+            serialized = rank_promos_for_today(serialized, limit=limit)
+        else:
+            serialized = rank_promos_for_today(serialized, limit=limit)
 
         try:
             from bankpromos.analytics_service import track_event
