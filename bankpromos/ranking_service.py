@@ -111,6 +111,55 @@ LEGAL_BANKING_KEYWORDS = [
     "reclamaciones", "servicio al cliente", "legal",
 ]
 
+OCR_FIXES = {
+    "reinegro": "reintegro",
+    "descune": "descuento",
+    "copetrol": "copetrol",
+    "beneﬁcio": "beneficio",
+    "reintegro": "reintegro",
+    "descuento": "descuento",
+}
+
+TITLE_CLEANUP_PATTERNS = [
+    r"\bhacete\s+cliente\b.*",
+    r"\btu\s+tarjeta\b.*",
+    r"\bbeneficios?\b.*",
+    r"\bdescuentos?\b.*",
+    r"\bconsulta\s+.*",
+    r"\bvalido\s+.*",
+    r"\bvigencia\s+.*",
+    r"\bexclusivo\s+cliente.*",
+    r"\bpara\s+vos.*",
+    r"\bpara\s+ti.*",
+]
+
+
+def _clean_title(title: str) -> str:
+    if not title:
+        return ""
+    
+    cleaned = title.strip()
+    
+    for pattern in TITLE_CLEANUP_PATTERNS:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = cleaned.strip()
+    
+    return cleaned
+
+
+def _fix_ocr_errors(text: str) -> str:
+    if not text:
+        return text
+    
+    for wrong, correct in OCR_FIXES.items():
+        if wrong != correct:
+            text = re.sub(wrong, correct, text, flags=re.IGNORECASE)
+    
+    text = re.sub(r"\s+", " ", text)
+    return text
+
 
 def _is_generic_promo(title: str, merchant: Optional[str]) -> bool:
     title_lower = (title or "").lower().strip()
@@ -247,6 +296,27 @@ def format_short_conditions(
     return " | ".join(parts) if parts else ""
 
 
+def _has_clear_benefit(promo: Dict[str, Any]) -> bool:
+    discount = promo.get("discount_percent")
+    installments = promo.get("installment_count")
+    benefit_type = promo.get("benefit_type")
+    title = (promo.get("title") or "").lower()
+    
+    if discount and float(discount) > 0:
+        return True
+    if installments and int(installments) > 0:
+        return True
+    if benefit_type in ("descuento", "reintegro", "cuotas", "beneficio"):
+        return True
+    
+    benefit_words = ["descuento", "reintegro", "cuotas", "off", "desc", "%"]
+    for word in benefit_words:
+        if word in title:
+            return True
+    
+    return False
+
+
 def filter_noise(promos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     clean = []
     
@@ -265,7 +335,20 @@ def filter_noise(promos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if merchant_lower in BANK_NAMES:
             continue
         
-        if _is_generic_promo(title, merchant):
+        title = _fix_ocr_errors(title)
+        title = _clean_title(title)
+        
+        if len(title) > 120:
+            continue
+        
+        sentences = title.split(".")
+        if len([s for s in sentences if s.strip()]) > 1:
+            continue
+        
+        if not title.strip():
+            continue
+        
+        if not _has_clear_benefit(p):
             continue
         
         for fake in FAKE_MERCHANT_PATTERNS:
@@ -282,6 +365,13 @@ def filter_noise(promos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     pass
                 else:
                     p_copy = dict(p)
+                    p_copy["title"] = title
+                    
+                    valid_days = p_copy.get("valid_days") or []
+                    if isinstance(valid_days, list):
+                        valid_days = list(dict.fromkeys(valid_days))
+                        p_copy["valid_days"] = valid_days
+                    
                     if not p_copy.get("conditions_short"):
                         conditions = p_copy.get("conditions_text") or p_copy.get("raw_text")
                         p_copy["conditions_short"] = format_short_conditions(
