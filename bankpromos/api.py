@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from decimal import Decimal
@@ -329,6 +330,8 @@ async def today(
         )
     except Exception as e:
         logger.error(f"Today error: {e}")
+        trace = traceback.format_exc()
+        print(f"ERROR /today: {e}\n{trace}")
         raise HTTPException(status_code=500, detail=f"Today error: {str(e)}")
 
 

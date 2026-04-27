@@ -1,6 +1,11 @@
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
+try:
+    import re
+except ImportError:
+    raise RuntimeError("Missing required module: re")
+
 
 CATEGORY_PRIORITY = {
     "Combustible": 1,
