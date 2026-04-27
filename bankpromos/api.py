@@ -182,6 +182,9 @@ def _serialize_promo(promo) -> Dict[str, Any]:
 
 @app.on_event("startup")
 async def startup_event():
+    from bankpromos.config import APP_VERSION
+    
+    logger.info(f"[STARTUP] VERSION: {APP_VERSION}")
     logger.info(f"[STARTUP] Starting Bank Promos PY API on port {port}...")
 
     db_info = config.validate_db_exists()
@@ -240,6 +243,8 @@ async def get_cache():
 
 @app.get("/data-status", response_model=DataStatusResponse)
 async def data_status():
+    from bankpromos.config import APP_VERSION
+    
     try:
         db_info = config.validate_db_exists()
         promos = load_promotions(config.db_path)
@@ -267,6 +272,35 @@ async def data_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/build-info")
+async def build_info():
+    from bankpromos.config import APP_VERSION
+    import os
+    
+    try:
+        db_info = config.validate_db_exists()
+        promos = load_promotions(config.db_path)
+        
+        build_text = None
+        build_path = "/build.txt"
+        if os.path.exists(build_path):
+            try:
+                with open(build_path) as f:
+                    build_text = f.read().strip()
+            except:
+                pass
+        
+        return {
+            "app_version": APP_VERSION,
+            "build_text": build_text,
+            "db_path": db_info["db_path"],
+            "promotions_count": len(promos),
+        }
+    except Exception as e:
+        logger.error(f"Build info error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/collect", response_model=CollectResponse)
 async def collect_data(force: bool = False):
     try:
@@ -289,6 +323,7 @@ async def today(
     group_by: str = Query(default="", description="Group by: category, bank"),
 ):
     try:
+        from bankpromos.config import APP_VERSION
         from bankpromos.core.normalizer import get_best_promotions_today
         from bankpromos.ranking_service import filter_noise, rank_promos_for_today, diversify_promos
 
@@ -318,10 +353,10 @@ async def today(
 
         if group_by == "category":
             groups = group_promos_by_category(serialized)
-            return {"query": f"today{(':' + category) if category else ''}", "total_results": len(serialized), "results": serialized, "groups": groups}
+            return {"query": f"today{(':' + category) if category else ''}", "total_results": len(serialized), "results": serialized, "groups": groups, "version": APP_VERSION}
         if group_by == "bank":
             groups = group_promos_by_bank(serialized)
-            return {"query": f"today{(':' + category) if category else ''}", "total_results": len(serialized), "results": serialized, "groups": groups}
+            return {"query": f"today{(':' + category) if category else ''}", "total_results": len(serialized), "results": serialized, "groups": groups, "version": APP_VERSION}
 
         return QueryResponse(
             query=f"today{(':' + category) if category else ''}",

@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import Optional
 
 
+APP_VERSION = "v2-clean-pipeline"
+
+
 def get_env(key: str, default: Optional[str] = None) -> Optional[str]:
     return os.environ.get(key, default)
 

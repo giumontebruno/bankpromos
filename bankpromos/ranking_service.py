@@ -119,8 +119,8 @@ LEGAL_BANKING_KEYWORDS = [
 OCR_FIXES = {
     "reinegro": "reintegro",
     "descune": "descuento",
-    "copetrol": "copetrol",
     "beneﬁcio": "beneficio",
+    "descuentos": "descuento",
     "reintegro": "reintegro",
     "descuento": "descuento",
 }
@@ -128,14 +128,26 @@ OCR_FIXES = {
 TITLE_CLEANUP_PATTERNS = [
     r"\bhacete\s+cliente\b.*",
     r"\btu\s+tarjeta\b.*",
-    r"\bbeneficios?\b.*",
-    r"\bdescuentos?\b.*",
+    r"\bal\s+instante\b.*",
     r"\bconsulta\s+.*",
     r"\bvalido\s+.*",
     r"\bvigencia\s+.*",
     r"\bexclusivo\s+cliente.*",
-    r"\bpara\s+vos.*",
-    r"\bpara\s+ti.*",
+    r"\bexclusivo\s+para.*",
+    r"\bproceda\s+.*",
+    r"\bcontrato\s+.*",
+    r"\bpara\s+vos\b.*",
+    r"\bpara\s+ti\b.*",
+    r"\bbeneficios?(?:\s+de|\s+sus|\s+(?:de|es)\s+)?.*",
+    r"\bdescuentos?(?:\s+de|\s+sus)?.*",
+    r"\bpromociones?\b.*",
+]
+
+MARKETING_BLOCK_KEYWORDS = [
+    "hacete cliente", "tu tarjeta", "al instante", "consulta",
+    "vigente", "exclusivo cliente", "exclusivo para", "proceda",
+    "contrato", "beneficios de", "beneficios sus", "descuentos de",
+    "descuentos sus", "promociones", "promocion",
 ]
 
 
@@ -322,6 +334,26 @@ def _has_clear_benefit(promo: Dict[str, Any]) -> bool:
     return False
 
 
+def _is_weak_merchant(merchant: Optional[str]) -> bool:
+    if not merchant or not merchant.strip():
+        return True
+    
+    m = merchant.strip().lower()
+    if len(m) < 4:
+        return True
+    
+    weak_words = {"el", "la", "un", "una", "los", "las", "de", "del", "para", "con"}
+    if m in weak_words:
+        return True
+    
+    generic = {"cliente", "tarjeta", "beneficio", "descuento", "promocion", "oferta", "banco", "pesos"}
+    for w in generic:
+        if m == w:
+            return True
+    
+    return False
+
+
 def filter_noise(promos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     clean = []
     
@@ -340,17 +372,40 @@ def filter_noise(promos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if merchant_lower in BANK_NAMES:
             continue
         
+        original_title = title
         title = _fix_ocr_errors(title)
         title = _clean_title(title)
         
-        if len(title) > 120:
+        if original_title != title:
+            print(f"OCR/CLEAN: '{original_title[:40]}' -> '{title[:40]}'")
+        
+        if len(title) > 100:
+            print(f"REJECT: title too long ({len(title)}): {title[:50]}")
             continue
         
         sentences = title.split(".")
         if len([s for s in sentences if s.strip()]) > 1:
+            print(f"REJECT: multiple sentences: {title[:50]}")
+            continue
+        
+        title_check = (title + " " + raw_text).lower()
+        blocked_kw = None
+        for kw in MARKETING_BLOCK_KEYWORDS:
+            if kw in title_check:
+                blocked_kw = kw
+                break
+        if blocked_kw:
+            print(f"REJECT: marketing keyword '{blocked_kw}': {title[:50]}")
             continue
         
         if not title.strip():
+            print(f"REJECT: empty title: {title}")
+            continue
+        
+        source_url = (p.get("source_url") or "").lower()
+        is_pdf = ".pdf" in source_url or "pdf" in source_url
+        
+        if is_pdf and _is_weak_merchant(merchant):
             continue
         
         if not _has_clear_benefit(p):
