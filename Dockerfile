@@ -20,13 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
+COPY requirements.txt .
 COPY pyproject.toml .
 COPY bankpromos bankpromos
 COPY data data
 
 RUN mkdir -p /app/data
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir -r requirements.txt
 
 RUN pip install --no-cache-dir playwright && \
     playwright install --with-deps chromium
