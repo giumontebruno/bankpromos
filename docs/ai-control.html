@@ -22,8 +22,19 @@
       --radius: 12px;
       --radius-sm: 8px;
     }
+    
+    .preview-image { display: block; }
+    .preview-clickable:hover { opacity: 0.95; }
+    .overlay-wrapper { position: absolute; top: 0; left: 0; }
+    .visual-region { transition: background 0.15s; }
+    
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+    
+    .preview-image { display: block; }
+    .preview-clickable:hover { opacity: 0.95; }
+    .overlay-wrapper { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; }
+    .visual-region { transition: background 0.15s, left 0.1s, top 0.1s, width 0.1s, height 0.1s; }
     
     .app-layout { display: flex; min-height: 100vh; }
     
@@ -428,16 +439,17 @@
       if (!item) return;
       
       const previewArea = document.getElementById("previewArea");
-      
       const regions = item.visual_regions || [];
       const hasRegions = regions && regions.length > 0;
       
       if (item.image_url) {
         let html = `<div class="preview-overlay-container" style="position:relative;display:inline-block;width:100%;">`;
-        html += `<img src="${API_BASE}${item.image_url}" style="max-width:100%;max-height:300px;border-radius:8px;" id="previewImage">`;
+        
+        html += `<div class="preview-clickable" onclick="openImageModal('${API_BASE}${item.image_url}')" style="cursor:pointer;position:relative;display:inline-block;">`;
+        html += `<img src="${API_BASE}${item.image_url}" class="preview-image" style="max-width:100%;max-height:300px;border-radius:8px;" onload="positionOverlays(this)">`;
         
         if (hasRegions) {
-          html += `<div class="overlay-boxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">`;
+          html += `<div class="overlay-boxes overlay-wrapper">`;
           
           const colors = {
             day: '#ef4444',
@@ -455,17 +467,21 @@
             const isHighConfidence = confidence >= 0.85;
             const borderStyle = isHighConfidence ? 'solid' : 'dashed';
             
-            html += `<div class="visual-region" data-field="${reg.field}" 
-              style="position:absolute;left:${reg.x * 100}%;top:${reg.y * 100}%;width:${reg.w * 100}%;height:${reg.h * 100}%;
-                     border:2px ${borderStyle} ${color};background:${color}22;pointer-events:auto;cursor:pointer;border-radius:4px;"
+            html += `<div class="visual-region" data-field="${reg.field}" data-x="${reg.x}" data-y="${reg.y}" data-w="${reg.w}" data-h="${reg.h}"
+              style="position:absolute;border:2px ${borderStyle} ${color};background:${color}22;pointer-events:auto;cursor:pointer;border-radius:4px;"
               title="Extraído como: ${label} (${Math.round(confidence * 100)}%)">
-              <span class="region-label" style="position:absolute;top:-18px;left:0;background:${color};color:white;
-                     font-size:9px;padding:1px 4px;border-radius:2px;white-space:nowrap;font-weight:500;">${label}</span>
+              <span class="region-label" style="position:absolute;top:-18px;left:0;background:${color};color:white;font-size:9px;padding:1px 4px;border-radius:2px;white-space:nowrap;font-weight:500;">${label}</span>
             </div>`;
           }
           
           html += `</div>`;
-          
+        }
+        
+        html += `</div>`;
+        
+        html += `<button onclick="openImageModal('${API_BASE}${item.image_url}')" style="margin-top:6px;padding:4px 12px;font-size:11px;cursor:pointer;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;">Ver imagen grande</button>`;
+        
+        if (hasRegions) {
           html += `<div class="legend" style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;font-size:11px;">
             <span style="color:#ef4444">● Día</span>
             <span style="color:#22c55e">● Descuento</span>
@@ -483,19 +499,14 @@
         
         if (hasRegions) {
           document.querySelectorAll('.visual-region').forEach(box => {
-            box.addEventListener('click', function() {
+            box.addEventListener('click', function(e) {
+              e.stopPropagation();
               const field = this.dataset.field;
-              if (field === 'discount') {
-                document.getElementById('discountPercent').focus();
-              } else if (field === 'merchant') {
-                document.getElementById('merchantName').focus();
-              } else if (field === 'conditions') {
-                document.getElementById('conditionsText').focus();
-              } else if (field === 'day') {
-                document.getElementById('validDays').focus();
-              } else if (field === 'validity' || field === 'cap') {
-                document.getElementById('capAmount').focus();
-              }
+              if (field === 'discount') { document.getElementById('discountPercent').focus(); }
+              else if (field === 'merchant') { document.getElementById('merchantName').focus(); }
+              else if (field === 'conditions') { document.getElementById('conditionsText').focus(); }
+              else if (field === 'day') { document.getElementById('validDays').focus(); }
+              else if (field === 'validity' || field === 'cap') { document.getElementById('capAmount').focus(); }
             });
             
             box.addEventListener('mouseenter', function() {
@@ -580,6 +591,80 @@
     
     document.getElementById("btnCorrect").addEventListener("click", () => saveCorrection("correct"));
     document.getElementById("btnIncorrect").addEventListener("click", () => saveCorrection("incorrect"));
+    
+    window.positionOverlays = function(img) {
+      const wrapper = img.parentElement;
+      const boxes = wrapper.querySelectorAll('.visual-region');
+      if (!boxes.length) return;
+      
+      const w = img.clientWidth;
+      const h = img.clientHeight;
+      
+      boxes.forEach(box => {
+        const relX = parseFloat(box.dataset.x);
+        const relY = parseFloat(box.dataset.y);
+        const relW = parseFloat(box.dataset.w);
+        const relH = parseFloat(box.dataset.h);
+        
+        box.style.left = (relX * w) + 'px';
+        box.style.top = (relY * h) + 'px';
+        box.style.width = (relW * w) + 'px';
+        box.style.height = (relH * h) + 'px';
+      });
+    };
+    
+    window.openImageModal = function(src) {
+      const modal = document.getElementById('imageModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'imageModal';
+        modal.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;overflow:auto;';
+        modal.innerHTML = `
+          <div style="position:relative;padding:20px;text-align:center;">
+            <div style="margin-bottom:10px;">
+              <button onclick="imageZoom(0.1)" style="padding:6px 12px;margin:2px;cursor:pointer;">Zoom +</button>
+              <button onclick="imageZoom(-0.1)" style="padding:6px 12px;margin:2px;cursor:pointer;">Zoom -</button>
+              <button onclick="imageReset()" style="padding:6px 12px;margin:2px;cursor:pointer;">Reset</button>
+              <button onclick="closeImageModal()" style="padding:6px 12px;margin:2px;cursor:pointer;background:#ef4444;color:white;border:none;border-radius:4px;">Cerrar</button>
+            </div>
+            <div id="modalImageWrapper" style="position:relative;display:inline-block;">
+              <img id="modalImage" src="" style="border-radius:8px;transform-origin:center;">
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal) closeImageModal();
+        });
+      }
+      
+      const modalImg = document.getElementById('modalImage');
+      modalImg.src = src;
+      modalImg.style.transform = 'scale(1)';
+      modal.style.display = 'flex';
+    };
+    
+    window.closeImageModal = function() {
+      const modal = document.getElementById('imageModal');
+      if (modal) modal.style.display = 'none';
+    };
+    
+    window.imageZoom = function(delta) {
+      const modalImg = document.getElementById('modalImage');
+      if (!modalImg) return;
+      const current = parseFloat(modalImg.style.transform.replace('scale(', '').replace(')', '')) || 1;
+      modalImg.style.transform = 'scale(' + (current + delta) + ')';
+    };
+    
+    window.imageReset = function() {
+      const modalImg = document.getElementById('modalImage');
+      if (modalImg) modalImg.style.transform = 'scale(1)';
+    };
+    
+    window.addEventListener('resize', function() {
+      const img = document.querySelector('.preview-image');
+      if (img && img.complete) positionOverlays(img);
+    });
     
     loadReviewItems();
   </script>
