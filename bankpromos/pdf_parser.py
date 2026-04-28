@@ -1,12 +1,11 @@
 import json
 import logging
 import re
-from datetime import datetime, date
-from decimal import Decimal
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from urllib.parse import urljoin
+from typing import Any, Dict, List, Optional, Tuple
 
+import fitz
+import pdfplumber
 import requests
 
 try:
@@ -118,6 +117,7 @@ def _extract_pdf_from_bytes(data: bytes) -> str:
         text_parts = []
         old_stderr = sys.stderr
         sys.stderr = io.StringIO()
+        
         try:
             with pdfplumber.open(path) as pdf:
                 for page in pdf.pages:
@@ -130,12 +130,51 @@ def _extract_pdf_from_bytes(data: bytes) -> str:
         finally:
             sys.stderr = old_stderr
         
-        Path(path).unlink(missing_ok=True)
+        try:
+            Path(path).unlink()
+        except:
+            pass
+        
         return "\n\n".join(text_parts)
     
     except Exception as e:
         logger.error(f"[PDF] Parse error: {e}")
         return ""
+
+
+def extract_pdf_text_by_page(
+    source: str,
+    page_number: int = 0,
+) -> Tuple[Optional[str], Optional[int]]:
+    if not source:
+        return None, None
+    
+    try:
+        if source.startswith("http"):
+            response = requests.get(source, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+            response.raise_for_status()
+            data = response.content
+        else:
+            data = Path(source).read_bytes()
+        
+        doc = fitz.open(stream=data, filetype="pdf")
+        
+        if page_number >= len(doc):
+            page_number = 0
+        
+        text = ""
+        if page_number < len(doc):
+            text = doc[page_number].get_text()
+            text = text.strip()
+        
+        num_pages = len(doc)
+        doc.close()
+        
+        return text, num_pages
+    
+    except Exception as e:
+        logger.error(f"[PDF] Error extracting page {page_number}: {e}")
+        return None, None
 
 
 def split_pdf_into_blocks(text: str) -> List[str]:

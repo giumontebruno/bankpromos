@@ -339,14 +339,34 @@ def _save_review_items(items: List[Dict[str, Any]]) -> None:
                 import os
                 if os.path.exists(pdf_path):
                     page = item.get("page", 0)
-                    image_url = generate_preview_for_item(pattern_key, pdf_path, page)
-                    if image_url:
-                        item["image_url"] = image_url
-                    
                     detected_text = item.get("detected_text", "")
-                    visual_regions = _generate_visual_regions(item, detected_text)
-                    if visual_regions:
-                        item["visual_regions"] = visual_regions
+                    detected_merchant = item.get("detected_merchant", "")
+                    detected_discount = item.get("detected_discount")
+                    detected_days = item.get("detected_days", [])
+                    detected_cap = item.get("detected_cap")
+                    
+                    result = generate_preview_for_item(
+                        pattern_key=pattern_key,
+                        pdf_path=pdf_path,
+                        page=page,
+                        detected_text=detected_text,
+                        detected_merchant=detected_merchant,
+                        detected_discount=detected_discount,
+                        detected_days=detected_days,
+                        detected_cap=detected_cap,
+                    )
+                    
+                    if result:
+                        if result.get("image_url"):
+                            item["image_url"] = result["image_url"]
+                        if result.get("crop_url"):
+                            item["crop_url"] = result["crop_url"]
+                        if result.get("visual_regions"):
+                            item["visual_regions"] = result["visual_regions"]
+                        if result.get("page_match_confidence"):
+                            item["page_match_confidence"] = result["page_match_confidence"]
+                        if result.get("page_number") is not None:
+                            item["page_number"] = result["page_number"]
         
         existing = _load_review_items()
         

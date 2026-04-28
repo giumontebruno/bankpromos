@@ -477,6 +477,46 @@
     let currentField = null;
     let previewWrapper = null;
     let previewImg = null;
+    let currentPreviewView = 'crop';
+    let currentImageUrl = '';
+    let cropImageUrl = '';
+    let fullImageUrl = '';
+    
+    function togglePreviewView(view) {
+      currentPreviewView = view;
+      const previewControls = document.querySelector('.preview-controls');
+      if (!previewControls) return;
+      
+      if (view === 'crop' && cropImageUrl) {
+        currentImageUrl = cropImageUrl;
+        renderOverlays(currentImageUrl);
+      } else if (view === 'full' && fullImageUrl) {
+        currentImageUrl = fullImageUrl;
+        renderOverlays(currentImageUrl);
+      }
+      
+      const btns = previewControls.querySelectorAll('button');
+      btns.forEach(btn => {
+        const txt = btn.textContent || '';
+        if (txt.includes('Ver crop') || txt.includes('Ver página')) {
+          if ((view === 'crop' && txt.includes('Ver crop')) || (view === 'full' && txt.includes('Ver página'))) {
+            btn.style.background = '#6366f1';
+            btn.style.color = 'white';
+          } else {
+            btn.style.background = '#e2e8f0';
+            btn.style.color = '#333';
+          }
+        }
+      });
+    }
+    
+    function renderOverlays(url) {
+      if (!previewImg || !url) return;
+      previewImg.src = API_BASE + url;
+      previewImg.onload = function() {
+        positionOverlays(previewImg);
+      };
+    }
     
     function setDrawingField(field) {
       currentField = field;
@@ -582,10 +622,23 @@
       const previewArea = document.getElementById("previewArea");
       const regions = item.visual_regions || [];
       const hasRegions = regions && regions.length > 0;
+      const cropUrl = item.crop_url;
+      const imageUrl = item.image_url;
+      const pageNum = item.page_number !== undefined ? item.page_number : (item.page || 0);
+      const pageConfidence = item.page_match_confidence || 'unknown';
+      
+      let isShowingCrop = !!cropUrl;
       
       if (item.image_url) {
         zoomLevel = 1.5;
         let html = `<div class="preview-container">`;
+        
+        html += `<div class="page-info" style="margin-bottom:8px;padding:8px;background:#f1f5f9;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span><strong>Página:</strong> ${pageNum + 1}</span>
+          <span class="page-confidence" style="color:${pageConfidence === 'high' ? '#16a34a' : '#dc2626'};font-weight:${pageConfidence === 'high' ? '600' : '400'};">
+            ${pageConfidence === 'high' ? '✓ Confirmada' : '⚠ Ubicación estimada'}
+          </span>
+        </div>`;
         
         html += `<div class="draw-toolbar" style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#f1f5f9;padding:8px;border-radius:6px;">
           <span style="font-size:11px;font-weight:500;margin-right:4px;">Seleccionar:</span>
@@ -596,17 +649,21 @@
           <button class="draw-tool-btn" data-field="conditions" onclick="setDrawingField('conditions')" style="padding:4px 10px;font-size:11px;border:none;border-radius:4px;cursor:pointer;background:#e2e8f0;">Condiciones</button>
         </div>`;
         
+        const currentImageUrl = isShowingCrop && cropUrl ? cropUrl : (imageUrl || '');
+        
         html += `<div class="preview-controls" style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          ${cropUrl ? `<button onclick="togglePreviewView('crop')" style="padding:6px 12px;cursor:pointer;background:${isShowingCrop ? '#6366f1' : '#e2e8f0'};color:${isShowingCrop ? 'white' : '#333'};border:none;border-radius:4px;">Ver crop</button>` : ''}
+          <button onclick="togglePreviewView('full')" style="padding:6px 12px;cursor:pointer;background:${!isShowingCrop && imageUrl ? '#6366f1' : '#e2e8f0'};color:${!isShowingCrop && imageUrl ? 'white' : '#333'};border:none;border-radius:4px;">Ver página completa</button>
           <button onclick="adjustZoom(0.25)" style="padding:6px 12px;cursor:pointer;">Zoom +</button>
           <button onclick="adjustZoom(-0.25)" style="padding:6px 12px;cursor:pointer;">Zoom -</button>
           <button onclick="resetZoom()" style="padding:6px 12px;cursor:pointer;">Reset</button>
           <span style="font-size:12px;">${Math.round(zoomLevel * 100)}%</span>
-          <button onclick="openImageModal('${API_BASE}${item.image_url}', ${JSON.stringify(regions)})" style="margin-left:auto;padding:6px 14px;cursor:pointer;background:#6366f1;color:white;border:none;border-radius:4px;">Ver imagen grande</button>
+          <button onclick="openImageModal('${API_BASE}${currentImageUrl}', ${JSON.stringify(regions)})" style="margin-left:auto;padding:6px 14px;cursor:pointer;background:#6366f1;color:white;border:none;border-radius:4px;">Ver imagen grande</button>
         </div>`;
         
         html += `<div class="preview-scroll" style="overflow:auto;max-height:70vh;border:1px solid #e2e8f0;border-radius:8px;background:#fafafa;">`;
         html += `<div class="preview-zoom-wrapper" style="display:inline-block;position:relative;transform:scale(${zoomLevel});transform-origin:top left;">`;
-        html += `<img src="${API_BASE}${item.image_url}" class="preview-image" onload="positionOverlays(this)">`;
+        html += `<img src="${API_BASE}${currentImageUrl}" class="preview-image" onload="positionOverlays(this)">`;
         
         if (hasRegions || manualRegions.length > 0) {
           html += `<div class="modal-overlay-boxes">`;
@@ -625,12 +682,13 @@
             const color = colors[reg.field] || '#ccc';
             const label = reg.label || reg.field;
             const confidence = reg.confidence || 0;
-            const isHighConfidence = confidence >= 0.85;
-            const borderStyle = isHighConfidence ? 'solid' : 'dashed';
+            const source = reg.source || 'heuristic';
+            const isConfirmedSource = source === 'pdf_bbox' || source === 'manual';
+            const borderStyle = isConfirmedSource ? 'solid' : 'dashed';
             
             html += `<div class="visual-region" data-field="${reg.field}" data-x="${reg.x}" data-y="${reg.y}" data-w="${reg.w}" data-h="${reg.h}"
               style="position:absolute;border:2px ${borderStyle} ${color};background:${color}22;pointer-events:auto;cursor:pointer;border-radius:4px;"
-              title="Extraído como: ${label} (${Math.round(confidence * 100)}%)">
+              title="${isConfirmedSource ? 'Confirmado' : 'Estimado'}: ${label} (${Math.round(confidence * 100)}%)">
               <span class="visual-label" style="position:absolute;top:-20px;left:0;background:rgba(0,0,0,0.75);color:white;font-size:11px;padding:2px 6px;border-radius:3px;white-space:nowrap;font-weight:500;">${label}</span>
             </div>`;
           }
@@ -641,6 +699,13 @@
         html += `</div></div>`;
         
         if (hasRegions || manualRegions.length > 0) {
+          let hasHeuristic = regions.some(r => r.source === 'heuristic');
+          if (hasHeuristic) {
+            html += `<div class="warning" style="margin-top:10px;padding:8px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:11px;color:#92400e;">
+              ⚠ Ubicación estimada, no confirmada en el PDF
+            </div>`;
+          }
+          
           html += `<div class="legend" style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;font-size:11px;">
             <span style="color:#ef4444">● Día</span>
             <span style="color:#22c55e">● Descuento</span>
@@ -703,6 +768,7 @@
         source_bank: item.bank || "",
         source_type: "pdf",
         source_file: item.source_file || "",
+        source_page: item.page_number !== undefined ? item.page_number : (item.page || 0),
         original_detected_text: item.detected_text || "",
         original_detected_merchant: item.detected_merchant,
         corrected_merchant_name: document.getElementById("merchantName").value,
@@ -713,6 +779,8 @@
         corrected_valid_days: document.getElementById("validDays").value.split(",").map(d => d.trim()).filter(d => d),
         corrected_conditions_text: document.getElementById("conditionsText").value,
         visual_regions: allRegions,
+        crop_url: item.crop_url,
+        page_match_confidence: item.page_match_confidence,
       };
       
       try {
