@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
