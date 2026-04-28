@@ -325,19 +325,50 @@
     let currentIndex = -1;
     
     async function loadReviewItems() {
+      const listEl = document.getElementById("reviewList");
+      const mainView = document.getElementById("mainView");
+      const emptyState = document.getElementById("emptyState");
+      
+      if (listEl) listEl.innerHTML = '<div class="empty-state">Cargando...</div>';
+      
       try {
         const res = await fetch(API_BASE + "/admin/review-items");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        
         const data = await res.json();
-        allItems = (data.results || []).map((item, idx) => ({
+        
+        let items = [];
+        if (Array.isArray(data)) {
+          items = data;
+        } else if (data.results && Array.isArray(data.results)) {
+          items = data.results;
+        } else if (data.items && Array.isArray(data.items)) {
+          items = data.items;
+        } else {
+          console.warn("Unexpected API response:", data);
+          items = [];
+        }
+        
+        allItems = items.map((item, idx) => ({
           ...item,
           _id: item._id || item.id || `item_${idx}`,
-          _status: item.status || "pending",
+          _status: item._status || "pending",
           _reason: getItemReason(item),
         }));
+        
+        if (allItems.length === 0) {
+          if (listEl) listEl.innerHTML = '<div class="empty-state">Sin items para revisar</div>';
+          return;
+        }
+        
         applyFilter();
+        
       } catch (e) {
-        console.error(e);
-        document.getElementById("reviewList").innerHTML = '<div class="empty-state">Error cargando</div>';
+        console.error("loadReviewItems error:", e);
+        const errMsg = 'Error: ' + (e.message || e.name || 'Unknown error');
+        if (listEl) listEl.innerHTML = '<div class="empty-state" style="color:#ef4444;">' + errMsg + '</div>';
+        if (mainView) mainView.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'block';
       }
     }
     
