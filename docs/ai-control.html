@@ -690,53 +690,6 @@
       document.getElementById("validDays").value = (item.detected_valid_days || []).join(", ");
       document.getElementById("conditionsText").value = item.detected_conditions || "";
     }
-          
-          html += `</div>`;
-        }
-        
-        html += `</div></div></div>`;
-        
-        if (hasRegions) {
-          html += `<div class="legend" style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;font-size:11px;">
-            <span style="color:#ef4444">● Día</span>
-            <span style="color:#22c55e">● Descuento</span>
-            <span style="color:#a855f7">● Condiciones</span>
-            <span style="color:#06b6d4">● Comercio</span>
-            <span style="color:#3b82f6">● Vigencia</span>
-            <span style="color:#eab308">● Tope</span>
-          </div>`;
-        } else {
-          html += `<div style="margin-top:6px;color:#666;font-size:11px;">Sin mapa visual todavía</div>`;
-        }
-        
-        previewArea.innerHTML = html;
-        
-        if (hasRegions) {
-          document.querySelectorAll('.visual-region').forEach(box => {
-            box.addEventListener('click', function(e) {
-              e.stopPropagation();
-              const field = this.dataset.field;
-              if (field === 'discount') document.getElementById('discountPercent').focus();
-              else if (field === 'merchant') document.getElementById('merchantName').focus();
-              else if (field === 'conditions') document.getElementById('conditionsText').focus();
-              else if (field === 'day') document.getElementById('validDays').focus();
-              else if (field === 'validity' || field === 'cap') document.getElementById('capAmount').focus();
-            });
-          });
-        }
-      } else {
-        previewArea.innerHTML = "Vista previa del documento";
-      }
-      
-      document.getElementById("rawText").textContent = item.detected_text || "(sin texto detectado)";
-      document.getElementById("merchantName").value = item.detected_merchant || "";
-      document.getElementById("category").value = item.detected_category || "";
-      document.getElementById("discountPercent").value = item.detected_discount || "";
-      document.getElementById("installmentCount").value = item.detected_installments || "";
-      document.getElementById("capAmount").value = item.detected_cap || "";
-      document.getElementById("validDays").value = (item.detected_valid_days || []).join(", ");
-      document.getElementById("conditionsText").value = item.detected_conditions || "";
-    }
     
     async function saveCorrection(status) {
       const item = filteredItems[currentIndex];
