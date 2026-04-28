@@ -1,8 +1,9 @@
 import hashlib
 import logging
 import os
+import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import fitz
 
@@ -57,6 +58,10 @@ def generate_preview_for_item(
 ) -> Optional[str]:
     item_id = _get_item_id(pattern_key)
     return generate_pdf_preview(pdf_path, page, item_id)
+
+
+def extract_boxes_from_pdf(pdf_path: str, page: int = 0) -> List[Dict[str, Any]]:
+    return []
 
 
 def get_preview_status() -> dict:

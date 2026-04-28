@@ -695,6 +695,8 @@ async def list_corrections(bank_id: str = Query(default=""), apply_to_future: bo
 async def create_correction(correction: dict):
     try:
         from bankpromos.corrections_service import add_correction
+        from bankpromos.visual_learning import learn_from_correction
+        
         result = add_correction(
             source_bank=correction.get("source_bank", ""),
             source_type=correction.get("source_type", "pdf"),
@@ -713,6 +715,15 @@ async def create_correction(correction: dict):
             apply_to_future=correction.get("apply_to_future", True),
             source_crop_path=correction.get("source_crop_path"),
         )
+        
+        visual_regions = correction.get("visual_regions", [])
+        if visual_regions:
+            learn_from_correction({
+                "source_bank": correction.get("source_bank", ""),
+                "corrected_category": correction.get("corrected_category", "General"),
+                "visual_regions": visual_regions,
+            })
+        
         return {"id": result["id"], "success": True}
     except Exception as e:
         logger.error(f"Admin correction create error: {e}")

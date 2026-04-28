@@ -213,6 +213,115 @@ def _load_review_items() -> List[Dict[str, Any]]:
         return []
 
 
+def _generate_visual_regions(item: Dict[str, Any], detected_text: str) -> List[Dict[str, Any]]:
+    import logging
+    try:
+        from bankpromos.visual_learning import get_average_position
+    except ImportError:
+        get_average_position = None
+    
+    regions = []
+    text = detected_text or ""
+    text_lower = text.lower()
+    
+    lines = text.split("\n")
+    
+    merchant = item.get("detected_merchant", "")
+    discount = item.get("detected_discount")
+    cap = item.get("detected_cap")
+    days = item.get("detected_days", [])
+    conditions = item.get("detected_conditions", "")
+    
+    bank = item.get("bank", "")
+    category = item.get("detected_category", "General")
+    
+    discount_pos = None
+    if get_average_position and bank:
+        discount_pos = get_average_position(bank, "discount", category)
+    
+    if discount:
+        pos = discount_pos if discount_pos else {}
+        regions.append({
+            "field": "discount",
+            "label": "Descuento",
+            "value": f"{discount}%",
+            "x": pos.get("x", 0.65),
+            "y": pos.get("y", 0.20),
+            "w": pos.get("w", 0.25),
+            "h": pos.get("h", 0.08),
+            "confidence": 0.9 if discount_pos else 0.6,
+        })
+    
+    if merchant and len(merchant) > 2:
+        merchant_pos = None
+        if get_average_position and bank:
+            merchant_pos = get_average_position(bank, "merchant", category)
+        pos = merchant_pos if merchant_pos else {}
+        regions.append({
+            "field": "merchant",
+            "label": "Comercio",
+            "value": merchant,
+            "x": pos.get("x", 0.35),
+            "y": pos.get("y", 0.15),
+            "w": pos.get("w", 0.30),
+            "h": pos.get("h", 0.10),
+            "confidence": 0.9 if merchant_pos else 0.6,
+        })
+    
+    if days and len(days) > 0:
+        day_pos = None
+        if get_average_position and bank:
+            day_pos = get_average_position(bank, "day", category)
+        pos = day_pos if day_pos else {}
+        regions.append({
+            "field": "day",
+            "label": "Día",
+            "value": ", ".join(days[:3]),
+            "x": pos.get("x", 0.05),
+            "y": pos.get("y", 0.85),
+            "w": pos.get("w", 0.20),
+            "h": pos.get("h", 0.05),
+            "confidence": 0.9 if day_pos else 0.6,
+        })
+    
+    if cap and cap > 0:
+        cap_pos = None
+        if get_average_position and bank:
+            cap_pos = get_average_position(bank, "cap", category)
+        pos = cap_pos if cap_pos else {}
+        regions.append({
+            "field": "cap",
+            "label": "Tope",
+            "value": str(cap),
+            "x": pos.get("x", 0.55),
+            "y": pos.get("y", 0.75),
+            "w": pos.get("w", 0.35),
+            "h": pos.get("h", 0.06),
+            "confidence": 0.9 if cap_pos else 0.6,
+        })
+    
+    for i, line in enumerate(lines):
+        line_lower = line.lower()
+        if "cuota" in line_lower:
+            cond_pos = None
+            if get_average_position and bank:
+                cond_pos = get_average_position(bank, "conditions", category)
+            pos = cond_pos if cond_pos else {}
+            regions.append({
+                "field": "conditions",
+                "label": "Condiciones",
+                "value": line.strip()[:30],
+                "x": pos.get("x", 0.25),
+                "y": pos.get("y", 0.40),
+                "w": pos.get("w", 0.30),
+                "h": pos.get("h", 0.06),
+                "confidence": 0.9 if cond_pos else 0.6,
+            })
+            break
+    
+    return regions
+
+
 def _save_review_items(items: List[Dict[str, Any]]) -> None:
     try:
         try:
@@ -233,6 +342,11 @@ def _save_review_items(items: List[Dict[str, Any]]) -> None:
                     image_url = generate_preview_for_item(pattern_key, pdf_path, page)
                     if image_url:
                         item["image_url"] = image_url
+                    
+                    detected_text = item.get("detected_text", "")
+                    visual_regions = _generate_visual_regions(item, detected_text)
+                    if visual_regions:
+                        item["visual_regions"] = visual_regions
         
         existing = _load_review_items()
         

@@ -15,7 +15,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/0934f2886f8e.png"
+    "image_url": "/previews/0934f2886f8e.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:pping 20% de reintegro con tarjetas de multiplaza. -skechers: credito. shopping pinedo. -tiendas de",
@@ -33,7 +45,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/1de5c8437d43.png"
+    "image_url": "/previews/1de5c8437d43.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "pping 20% de reintegro con tar",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:a cs club lez a lez carmen steffens jueves 10 al luomo gs. 2.000.000 domingo 13 de liberato octubre",
@@ -51,7 +85,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/2f14510aa6ae.png"
+    "image_url": "/previews/2f14510aa6ae.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:00 domingo 13 de liberato octubre 20% de reintegro con tarjetas de maria candela credito. havaianas",
@@ -69,7 +115,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/19e96316a5c3.png"
+    "image_url": "/previews/19e96316a5c3.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "00 Domingo 13 de Liberato octu",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:he amoreira basic ah cortes shopping británico nice indian amoreira fit glam forever 21 springfield",
@@ -87,7 +155,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/5fd135d4ddb7.png"
+    "image_url": "/previews/5fd135d4ddb7.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:fit glam forever 21 springfield 20% de reintegro con tarjetas de credito. women secret jueves 10 al",
@@ -105,7 +185,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/0f42a862278c.png"
+    "image_url": "/previews/0f42a862278c.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "Fit Glam Forever 21 Springfiel",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:berland perfumerias y cosméticos: comercio beneficio tope de compra por marca vigencia aclaraciones",
@@ -123,7 +225,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/909f18666b0f.png"
+    "image_url": "/previews/909f18666b0f.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:% de reintegro con tarjetas de aplica exclusivamente en champs elysees credito. tiendas propias. no",
@@ -141,7 +255,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/d93970cb62a9.png"
+    "image_url": "/previews/d93970cb62a9.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "% de reintegro con tarjetas de",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:de compra por marca vigencia aclaraciones joyería armele gs. 15.000.000 denoir gs. 3.000.000 juwel",
@@ -159,7 +295,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/c2a76e637dc4.png"
+    "image_url": "/previews/c2a76e637dc4.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:le gs. 15.000.000 denoir gs. 3.000.000 juwel 20% de reintegro con tarjetas de joolz credito. odette",
@@ -177,7 +325,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/5c71006bd645.png"
+    "image_url": "/previews/5c71006bd645.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "le GS. 15.000.000 Denoir GS. 3",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:sa gs. 5.000.000 pipol farmacias: comercio beneficio tope de compra por marca vigencia aclaraciones",
@@ -195,7 +365,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/e0ed052b5ee2.png"
+    "image_url": "/previews/e0ed052b5ee2.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "sa GS. 5.000.000 Pipol Farmaci",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:67083a1f7046d671382706.pdf:0:beneficio tope de compra por marca vigencia aclaraciones 20% de reintegro con tarjetas de credito.",
@@ -213,7 +405,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/9061a7b8f533.png"
+    "image_url": "/previews/9061a7b8f533.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "Beneficio Tope de compra por m",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6957d7b54ef8f625290114.pdf:0:strito perseverancia – reyes 2026 vigencia • desde el 03 de enero al 07 de enero 2026. beneficios •",
@@ -231,7 +445,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/f4211ea26ffd.png"
+    "image_url": "/previews/f4211ea26ffd.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "STRITO PERSEVERANCIA – REYES 2",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6957d7b54ef8f625290114.pdf:0:enero al 07 de enero 2026. beneficios • 20% de reintegro directo pagando con tarjetas de crédito. •",
@@ -249,7 +485,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/236cf2c869b6.png"
+    "image_url": "/previews/236cf2c869b6.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "enero al 07 de enero 2026. BEN",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6957d7b54ef8f625290114.pdf:0:ercio beneficios tope de compra ubicación vigencia panco puma pima cotton by cuna bella nike adidas",
@@ -267,7 +525,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/1cee8c95cd12.png"
+    "image_url": "/previews/1cee8c95cd12.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "7000000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6957d7b54ef8f625290114.pdf:0:idas 20% de reintegro directo pagando adidas original con tarjetas de crédito. aplica únicamente a +",
@@ -285,7 +565,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/09420ed2d3e9.png"
+    "image_url": "/previews/09420ed2d3e9.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "5.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "7000000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:participantes de la promoción comercio beneficios tope dias locales desde hasta jueves a tia laura",
@@ -303,7 +605,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/17e53c63fc57.png"
+    "image_url": "/previews/17e53c63fc57.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:jueves a tia laura 20% de reintegro directo en extracto 350.000 todos 21/8/2025 28/02/2026 domingo",
@@ -321,7 +635,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/59a518b2e319.png"
+    "image_url": "/previews/59a518b2e319.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:ernardino burger king 500.000 9/1/2026 15/02/2026 (exclusivamente pagos con qr) domingo encarnación",
@@ -339,7 +665,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/8efb8a0ebd4e.png"
+    "image_url": "/previews/8efb8a0ebd4e.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:to jueves a subway 500.000 san bernardino 9/1/2026 15/02/2026 (exclusivamente pagos con qr) domingo",
@@ -357,7 +695,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/f0fbd8afe681.png"
+    "image_url": "/previews/f0fbd8afe681.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:rdino 5/12/2025 01/03/2026 + 5% de descuento para tarjetas domingo mastercard black y visa infinite",
@@ -375,7 +725,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/d54ca65911d2.png"
+    "image_url": "/previews/d54ca65911d2.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "rdino 5/12/2025 01/03/2026 + 5",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:.000.000 san bernardino 9/1/2026 15/02/2026 domingo hasta 12 cuotas sin interés san bernardino enex",
@@ -393,7 +765,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/fdb2351a2ee5.png"
+    "image_url": "/previews/fdb2351a2ee5.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": ".000.000 San Bernardino 9/1/20",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:cto en extracto 800.000 sábado 10/1/2026 15/02/2026 encarnación 1.ypacarai (ruta py02 km 37) 2. san",
@@ -411,7 +805,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/48b9693b0e02.png"
+    "image_url": "/previews/48b9693b0e02.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:ardino(av pagando con tarjetas de crédito guillermo copetrol 800.000 domingo 18/1/2026 15/02/2026 +",
@@ -429,7 +835,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/deffff3d97d6.png"
+    "image_url": "/previews/deffff3d97d6.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "5.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:entos y 20% no medicamentos 1.500.000 para san bernardino farmacenter sábado 10/1/2026 14/02/2026 +",
@@ -447,7 +865,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/47eec55e2329.png"
+    "image_url": "/previews/47eec55e2329.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "15.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "entos y 20% no medicamentos 1.",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:ta 12 cuotas sin interés 20% de descuento en caja 1.500.000 para san bernardino farmacia catedral +",
@@ -465,7 +905,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/bba414ff9a67.png"
+    "image_url": "/previews/bba414ff9a67.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "10.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "ta 12 Cuotas sin interés 20% d",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:egro encarnación hasta 12 cuotas sin interés 20% de descuento en caja 1.500.000 para biggie farma +",
@@ -483,7 +945,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/4c4e472c0ae4.png"
+    "image_url": "/previews/4c4e472c0ae4.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "10.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "egro Encarnación Hasta 12 Cuot",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:tegro con qr jueves todos 1/1/2026 28/02/2026 reintegro hasta 12 cuotas sin interés 1.000.000 elite",
@@ -501,7 +985,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/e3fe323a39ac.png"
+    "image_url": "/previews/e3fe323a39ac.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "30.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "tegro con QR jueves Todos 1/1/",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:rano 2026 comercios participantes de la promoción comercio beneficios tope dias locales desde hasta",
@@ -519,7 +1025,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/88b8c5b949f8.png"
+    "image_url": "/previews/88b8c5b949f8.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:acto pagando con tarjetas de crédito jueves a kessel 2.500.000 san bernardino 9/1/2026 15/02/2026 +",
@@ -537,7 +1055,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/39f8e53c7ff5.png"
+    "image_url": "/previews/39f8e53c7ff5.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "5.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:rnardino 9/1/2026 15/02/2026 + 5% de reintegro pagando con domingo mastercard black y visa infinite",
@@ -555,7 +1085,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/8a195f6aebac.png"
+    "image_url": "/previews/8a195f6aebac.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "rnardino 9/1/2026 15/02/2026 +",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:gando con tarjetas de crédito jueves a kessel market 2.000.000 san bernardino 9/1/2026 15/02/2026 +",
@@ -573,7 +1125,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/e56187b659c3.png"
+    "image_url": "/previews/e56187b659c3.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "5.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:000 8/1/2026 15/02/2026 sábado asunción hasta 12 cuotas sin interés españa jueves a bodega boutique",
@@ -591,7 +1155,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/edd1dbe61fee.png"
+    "image_url": "/previews/edd1dbe61fee.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "000 8/1/2026 15/02/2026 sábado",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:de reintegro directo en extracto 2.000.000 molas lópez 1/12/2025 01/03/2026 domingo san bernardino",
@@ -609,7 +1195,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/165b58a7143f.png"
+    "image_url": "/previews/165b58a7143f.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "de reintegro directo en extrac",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:0 san bernardino 9/1/2026 15/02/2026 domingo hasta 12 cuotas sin interés 15% de descuento en caja +",
@@ -627,7 +1235,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/fd6ed01234e1.png"
+    "image_url": "/previews/fd6ed01234e1.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "10.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "0 San Bernardino 9/1/2026 15/0",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6961a25cb5fe8037905314.pdf:0:.000 san bernardino 9/1/2026 15/02/2026 sábado (descuento en caja aplica solo a socios del nautico)",
@@ -645,7 +1275,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/0d04e602918b.png"
+    "image_url": "/previews/0d04e602918b.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": ".000 San Bernardino 9/1/2026 1",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:697a5bb5d7be3529018972.pdf:0:es 2026 vigencia • todos los días. • desde el 29 de enero hasta el 08 de febrero 2026. beneficios •",
@@ -663,7 +1315,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/76f0dbaf784c.png"
+    "image_url": "/previews/76f0dbaf784c.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "ES 2026 VIGENCIA • Todos los d",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:697a5bb5d7be3529018972.pdf:0:ero 2026. beneficios • 20% de reintegro directo en extracto con tarjetas de crédito de sudameris. •",
@@ -681,7 +1355,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/c41217e1e1ba.png"
+    "image_url": "/previews/c41217e1e1ba.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "ero 2026. BENEFICIOS • 20% de ",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:697a5bb5d7be3529018972.pdf:0:colegio cnel. oviedo libreria el lector (*) asunción/ gran asunción libreria el progreso concepcion",
@@ -699,7 +1395,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/30148b71a99d.png"
+    "image_url": "/previews/30148b71a99d.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:697a5bb5d7be3529018972.pdf:0:cto pagando con libreria la plaza tarjetas de crédito asunción/ gran asunción libreria las americas",
@@ -717,7 +1425,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/4fb96d323d74.png"
+    "image_url": "/previews/4fb96d323d74.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "8000000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6985f3b35b43b247372447.pdf:0:los días. • desde el 29 de enero hasta el 22 de febrero 2026, (ver cuadro más abajo). beneficios •",
@@ -735,7 +1465,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/c784e94676bf.png"
+    "image_url": "/previews/c784e94676bf.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "los días. • Desde el 29 de ene",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6985f3b35b43b247372447.pdf:0:s abajo). beneficios • 20% de reintegro directo en extracto con tarjetas de crédito de sudameris. •",
@@ -753,7 +1505,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/4f5b19dfed29.png"
+    "image_url": "/previews/4f5b19dfed29.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "s abajo). BENEFICIOS • 20% de ",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6985f3b35b43b247372447.pdf:0:do libreria el lector (*) asunción/ gran asunción libreria el progreso concepción libreria la plaza",
@@ -771,7 +1545,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/7a41dffd54e0.png"
+    "image_url": "/previews/7a41dffd54e0.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:6985f3b35b43b247372447.pdf:0:extracto pagando con asunción/ gran asunción libreria las americas tarjetas de crédito encarnación",
@@ -789,7 +1575,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/e1b1561e366c.png"
+    "image_url": "/previews/e1b1561e366c.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "8000000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:rcio días beneficio mensual por vigencia comercio bar san miguel desde el 07.01.25 jueves a sábados",
@@ -807,7 +1615,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/a599261ac81b.png"
+    "image_url": "/previews/a599261ac81b.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:k e infinite gs. 800.000 (asu y cde) hasta el 30.06.26 desde el 07.01.25 el legado jueves a sábados",
@@ -825,7 +1645,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/c263260b9074.png"
+    "image_url": "/previews/c263260b9074.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:+ 5% para black e infinite gs. 800.000 hasta el 30.06.26 desde el 31.03.25 kaiseki lunes a viernes",
@@ -843,7 +1675,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/e8dc63c4c044.png"
+    "image_url": "/previews/e8dc63c4c044.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:black e infinite gs. 1.000.000 hasta el 31.07.26 desde el 01.01.26 patio colonial jueves a domingo",
@@ -861,7 +1705,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/8d0f8d290408.png"
+    "image_url": "/previews/8d0f8d290408.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:omingo 20% de reintegro gs. 800.000 hasta el 02.08.26 desde el 05.03.26 de la peque jueves a sábado",
@@ -879,7 +1735,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/5efb8c5a0a0c.png"
+    "image_url": "/previews/5efb8c5a0a0c.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:es a sábado 20% de reintegro gs. 500.000 hasta el 01.08.26 desde el 05.03.26 chaval jueves a sábado",
@@ -897,7 +1765,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/3d54377d6972.png"
+    "image_url": "/previews/3d54377d6972.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:o + 5% para black e infinite gs. 600.000 hasta el 01.08.26 desde el 03.03.26 totem martes a viernes",
@@ -915,7 +1795,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/3ac07a547a14.png"
+    "image_url": "/previews/3ac07a547a14.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:ara black e infinite gs. 500.000 hasta el 31.02.27 desde el 04.06.25 molas 1901 miércoles a viernes",
@@ -933,7 +1825,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/9bea8911e550.png"
+    "image_url": "/previews/9bea8911e550.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:ara black e infinite gs. 800.000 hasta el 31.07.26 desde el 12.06.25 jardín urbano jueves a domingo",
@@ -951,7 +1855,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/889cad442a3f.png"
+    "image_url": "/previews/889cad442a3f.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:s a domingo 20% de reintegro gs. 800.000 hasta el 02.08.26 desde el 01.01.25 la panera rosa sábados",
@@ -969,7 +1885,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/d1cedc7c5d65.png"
+    "image_url": "/previews/d1cedc7c5d65.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:sábados 20% de reintegro gs. 600.000 hasta el 05.08.26 desde el 21.08.25 tia laura jueves a domingo",
@@ -987,7 +1915,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/7195cc888aac.png"
+    "image_url": "/previews/7195cc888aac.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:s a domingo 20% de reintegro gs. 350.000 hasta el 01.03.26 desde el 30.09.25 grosso martes a jueves",
@@ -1005,7 +1945,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/059f219a563d.png"
+    "image_url": "/previews/059f219a563d.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:so martes a jueves 20% de reintegro gs. 800.000 hasta el 30.07.26 desde el 11.11.25 lido bar martes",
@@ -1023,7 +1975,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/c002c31305bb.png"
+    "image_url": "/previews/c002c31305bb.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "30.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:hasta el 31.10.26 café quinto (aplica para pedidos vía desde el 18.11.25 whatsapp. no aplica martes",
@@ -1041,7 +2005,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/086fa3e339cb.png"
+    "image_url": "/previews/086fa3e339cb.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:gro gs. 800.000 hasta el 31.07.26 a pedidos vía web) desde el 26.12.25 café jardin jueves a domingo",
@@ -1059,7 +2035,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/df8ee5eb499a.png"
+    "image_url": "/previews/df8ee5eb499a.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69ab3631eed07313363012.pdf:0:te gs. 600.000 hasta el 02.08.26 restaurante desde el 07.03.26 hotel villa morra sabados y domingos",
@@ -1077,7 +2065,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/062278ac74bf.png"
+    "image_url": "/previews/062278ac74bf.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69b16309eaa2e132715660.pdf:0:1 napy vigencia • desde el 13 de marzo hasta el 15 de marzo 2026. beneficios • 20% de reintegro dire",
@@ -1095,7 +2095,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/2b736dac898b.png"
+    "image_url": "/previews/2b736dac898b.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "1 NAPY VIGENCIA • Desde el 13 ",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69b16309eaa2e132715660.pdf:0:el 15 de marzo 2026. beneficios • 20% de reintegro directo con tarjetas de crédito de sudameris. •",
@@ -1113,7 +2135,39 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/4b3d1fcebe58.png"
+    "image_url": "/previews/4b3d1fcebe58.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "2000000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "el 15 de marzo 2026. BENEFICIO",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69b1a5f2bbd99270068862.pdf:0:1 the town vigencia • desde el 12 al 15 de marzo 2026. beneficios • 20% de reintegro directo con tar",
@@ -1131,7 +2185,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/fdea41d6e6e5.png"
+    "image_url": "/previews/fdea41d6e6e5.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "1 THE TOWN VIGENCIA • Desde el",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69b1a5f2bbd99270068862.pdf:0:al 15 de marzo 2026. beneficios • 20% de reintegro directo con tarjetas de crédito de sudameris. •",
@@ -1149,7 +2225,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/ea2016a8605b.png"
+    "image_url": "/previews/ea2016a8605b.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "conditions",
+        "label": "Condiciones",
+        "value": "al 15 de marzo 2026. BENEFICIO",
+        "x": 0.25,
+        "y": 0.4,
+        "w": 0.3,
+        "h": 0.06,
+        "confidence": 0.6
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69b1a5f2bbd99270068862.pdf:0:n comercio beneficios tope de compra ubicación vigencia l'instant deco corazón de melón planet toys",
@@ -1167,7 +2265,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/a7764c8b22ea.png"
+    "image_url": "/previews/a7764c8b22ea.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "5000000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:69b1a5f2bbd99270068862.pdf:0:de melón planet toys 20% de reintegro directo con tarjetas de crédito de sudameris. le parfum niche",
@@ -1185,7 +2305,29 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/5f14511cb6a3.png"
+    "image_url": "/previews/5f14511cb6a3.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "5000000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:bc-de26-kessel-29126.pdf:0:kessel - promo enamorados vigencia • desde el 29 de enero hasta el 14 de febrero 2026. beneficios •",
@@ -1203,7 +2345,19 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/23afeb219554.png"
+    "image_url": "/previews/23afeb219554.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "20.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "pattern_key": "sudameris:bc-de26-kessel-29126.pdf:0:l 14 de febrero 2026. beneficios • 20% de reintegro directo con tarjetas de crédito de sudameris. •",
@@ -1221,6 +2375,28 @@
     "detected_conditions": null,
     "reason": "missing merchant + general category",
     "crop_path": null,
-    "image_url": "/previews/6e338ab4d596.png"
+    "image_url": "/previews/6e338ab4d596.png",
+    "visual_regions": [
+      {
+        "field": "discount",
+        "label": "Descuento",
+        "value": "25.0%",
+        "x": 0.6428571428571429,
+        "y": 0.22142857142857145,
+        "w": 0.29714285714285715,
+        "h": 0.08142857142857143,
+        "confidence": 0.9
+      },
+      {
+        "field": "cap",
+        "label": "Tope",
+        "value": "1400000.0",
+        "x": 0.55,
+        "y": 0.75,
+        "w": 0.35,
+        "h": 0.06,
+        "confidence": 0.9
+      }
+    ]
   }
 ]
