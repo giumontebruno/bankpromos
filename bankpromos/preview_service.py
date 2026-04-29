@@ -236,6 +236,13 @@ def extract_visual_regions_from_pdf(
 ) -> List[Dict[str, Any]]:
     regions = []
     
+    GENERIC_TERMS = {
+        "beneficios", "condiciones", "tarjetas", "credito", "reintegro",
+        "descuento", "promocion", "compras", "banco", "general"
+    }
+    
+    has_discount = detected_discount and detected_discount > 0
+    
     try:
         doc = fitz.open(pdf_path)
         
@@ -250,7 +257,9 @@ def extract_visual_regions_from_pdf(
         text = page_obj.get_text()
         text_lower = text.lower()
         
-        if detected_merchant and len(detected_merchant) > 2:
+        merchant_is_generic = detected_merchant and len(detected_merchant) > 0 and detected_merchant.lower().strip() in GENERIC_TERMS
+        
+        if detected_merchant and len(detected_merchant) > 2 and not merchant_is_generic:
             bbox_info = _get_bbox_for_field(pdf_path, "merchant", detected_merchant, page)
             if bbox_info:
                 rel = _convert_bbox_to_relative(bbox_info["bbox"], page_width, page_height)
@@ -400,24 +409,99 @@ def _generate_heuristic_regions(
     return regions
 
 
-def find_best_page_for_text(pdf_path: str, detected_text: str) -> Optional[Dict[str, Any]]:
+WEAK_MERCHANT_TERMS = {
+    "shopping", "mall", "tienda", "local", "comercio", "comercios",
+    "beneficio", "beneficios", "promocion", "promociones",
+    "tarjeta", "tarjetas", "banco", "compras", "sucursal",
+    "general", "vigente", "vigentes", "cat", "catalogo"
+}
+
+
+def is_valid_merchant_evidence(value: str) -> tuple[bool, str]:
+    if not value or len(value) < 3:
+        return False, "too_short"
+    
+    normalized = value.lower().strip()
+    
+    if normalized in WEAK_MERCHANT_TERMS:
+        return False, "weak_term"
+    
+    if len(normalized) < 4:
+        return False, "too_short"
+    
+    if normalized.isdigit():
+        return False, "numeric_only"
+    
+    if all(c.isdigit() or c.isspace() for c in normalized):
+        return False, "no_letters"
+    
+    return True, "valid"
+
+
+def find_best_page_for_text(pdf_path: str, detected_text: str, detected_merchant: str = "", detected_discount: Any = None) -> Optional[Dict[str, Any]]:
     if not detected_text or len(detected_text) < 10:
         return None
     
+    GENERIC_TERMS = {
+        "beneficios", "condiciones", "tarjetas", "credito", "reintegro",
+        "descuento", "promocion", "compras", "banco", "vigentes", "vigencia",
+        "tarjeta", "banco", "pesos", "gs", "por", "con", "valores",
+        "aplican", "aplica", "puede", "pueden", "forma", "medio",
+        "compra", "compras", "pago", "pagos", "visa", "mastercard"
+    }
+    
     key_fragments = []
+    matched_fragments = []
+    strong_fragments_indices = []
+    
+    merchant_valid, merchant_reason = is_valid_merchant_evidence(detected_merchant)
+    
+    if detected_merchant and merchant_valid:
+        normalized = detected_merchant.lower().strip()
+        if normalized not in GENERIC_TERMS:
+            key_fragments.append(normalized)
+            matched_fragments.append(f"merchant:{normalized}")
+            strong_fragments_indices.append(0)
+    
+    if detected_discount:
+        discount_str = f"{detected_discount}%"
+        key_fragments.append(discount_str)
+        matched_fragments.append(f"discount:{discount_str}")
+        strong_fragments_indices.append(len(key_fragments) - 1)
     
     if len(detected_text) > 20:
-        key_fragments.append(detected_text[:30])
+        text_chunk = detected_text[:40].lower()
+        words = text_chunk.split()
+        significant_words = [w for w in words if len(w) > 5 and w.lower() not in GENERIC_TERMS]
+        for word in significant_words[:3]:
+            if word not in key_fragments:
+                key_fragments.append(word)
+                matched_fragments.append(f"text:{word}")
     
-    words = detected_text.split()
-    for word in words:
-        if len(word) > 5:
-            key_fragments.append(word)
+    strong_match_found = False
+    strong_match_index = -1
+    best_result = None
     
-    for fragment in key_fragments:
+    for i, fragment in enumerate(key_fragments):
         result = _find_text_in_pdf(pdf_path, fragment)
         if result:
-            return result
+            if i in strong_fragments_indices:
+                strong_match_found = True
+                strong_match_index = i
+                best_result = result
+                break
+            elif best_result is None:
+                best_result = result
+    
+    if best_result and strong_match_found:
+        best_result["matched_fragments"] = matched_fragments
+        best_result["page_match_reason"] = "strong_merchant_or_discount"
+        return best_result
+    
+    if best_result:
+        best_result["matched_fragments"] = matched_fragments
+        best_result["page_match_reason"] = "text_fragment"
+        return best_result
     
     return None
 
@@ -438,26 +522,75 @@ def generate_preview_for_item(
         "image_url": None,
         "crop_url": None,
         "page_number": page,
+        "page_number_orig": page,
         "visual_regions": [],
-        "page_match_confidence": "high",
+        "page_match_confidence": "none",
+        "page_match_reason": "no_match_attempted",
+        "matched_fragments": [],
+        "evidence_found": False,
+        "bbox_source": "none",
     }
     
-    page_match = find_best_page_for_text(pdf_path, detected_text)
+    merchant_valid, merchant_reason = is_valid_merchant_evidence(detected_merchant)
+    discount_found = detected_discount is not None and detected_discount > 0
+    
+    page_match = find_best_page_for_text(
+        pdf_path, detected_text,
+        detected_merchant=detected_merchant,
+        detected_discount=detected_discount
+    )
     
     if page_match:
         result["page_number"] = page_match["page"]
-        result["page_match_confidence"] = "high"
+        result["page_match_reason"] = page_match.get("page_match_reason", "unknown")
+        result["matched_fragments"] = page_match.get("matched_fragments", [])
+        
+        if result["page_match_reason"] == "strong_merchant_or_discount":
+            has_valid_merchant = merchant_valid or False
+            has_discount = discount_found
+            
+            if has_discount or has_valid_merchant:
+                result["page_match_confidence"] = "high"
+                result["evidence_found"] = True
+            else:
+                result["page_match_confidence"] = "low"
+        else:
+            result["page_match_confidence"] = "low"
+        
         page = page_match["page"]
+    else:
+        result["page_match_confidence"] = "none"
+        result["page_match_reason"] = "no_match_found"
     
     result["image_url"] = generate_pdf_preview(pdf_path, page, item_id)
     
-    if detected_text or detected_merchant:
+    if not discount_found and not merchant_valid:
+        result["evidence_found"] = False
+    
+    has_visual_regions = detected_text or detected_merchant
+    
+    if has_visual_regions:
         regions = extract_visual_regions_from_pdf(
             pdf_path, page, detected_text,
             detected_merchant, detected_discount,
             detected_days or [], detected_cap
         )
         result["visual_regions"] = regions
+        
+        bbox_regions = [r for r in regions if r.get("source") == "pdf_bbox"]
+        
+        relevant_bbox = any(
+            r.get("field") in ("merchant", "discount", "cap", "day") 
+            for r in bbox_regions
+        )
+        
+        if relevant_bbox and (discount_found or merchant_valid):
+            result["evidence_found"] = True
+            result["bbox_source"] = "pdf_bbox"
+        elif bbox_regions:
+            result["bbox_source"] = "pdf_bbox"
+        elif not result["evidence_found"]:
+            result["bbox_source"] = "heuristic"
         
         main_bbox = None
         for reg in regions:
